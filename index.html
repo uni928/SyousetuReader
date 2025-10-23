@@ -478,6 +478,10 @@ function buildReaderHTML(novel){
   // データを安全に埋め込み
   const data = { title: novel.title, pages: novel.pages.sort((a,b)=>a.number-b.number).map(p=>({ number:p.number, title:p.title||'', text:p.text||'' })) };
   const payload = JSON.stringify(data).replace(/<\//g,'<\\/');
+
+
+
+
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>${escapeHTML(novel.title)} | 閲覧</title>
   <style>
@@ -491,27 +495,48 @@ function buildReaderHTML(novel){
   .paper{ background: var(--paper); border-radius: var(--radius); padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
   .muted{ color:var(--muted) }
   .grid{ display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center; }
-  .toolbar button{ padding:8px 12px; border-radius:10px; border:1px solid color-mix(in oklab, var(--muted) 25%, transparent); background:transparent; color:inherit; }
+  .toolbar button{ padding:8px 12px; border-radius:10px; border:1px solid color-mix(in oklab, var(--muted) 25%, transparent); background:transparent; color:inherit; cursor:pointer; }
   .toolbar input{ padding:8px 10px; border-radius:10px; border:1px solid color-mix(in oklab, var(--muted) 25%, transparent); background:transparent; color:inherit; width:7em; text-align:center; }
   h2{ margin:.2em 0 .6em; font-size: 20px; }
   pre{ white-space: pre-wrap; word-wrap: break-word; font: 17px/2 "YuMincho", "BIZ UD明朝", serif; }
   nav.pages{ display:flex; gap:8px; flex-wrap:wrap; }
-  nav.pages button{ padding:6px 10px; border-radius:999px; border:1px solid color-mix(in oklab, var(--muted) 25%, transparent); background:transparent; color:inherit; }
+  nav.pages button{ padding:6px 10px; border-radius:999px; border:1px solid color-mix(in oklab, var(--muted) 25%, transparent); background:transparent; color:inherit; cursor:pointer; }
   nav.pages button[aria-current="page"]{ background: color-mix(in oklab, var(--accent) 25%, transparent); }
+  /* TOC */
+  #tocList{ display:grid; grid-template-columns: 1fr; gap:10px; }
+  .toc-item{ display:flex; gap:12px; align-items:baseline; padding:12px 14px; border-radius:12px; border:1px solid color-mix(in oklab, var(--muted) 25%, transparent); background: color-mix(in oklab, var(--paper) 85%, transparent); cursor:pointer; }
+  .toc-item:hover{ outline: 2px solid color-mix(in oklab, var(--accent) 35%, transparent); }
+  .toc-num{ font-weight:800; min-width:6em; color:var(--muted); }
+  .toc-title{ font-weight:700; }
+  .hidden{ display:none; }
+  .backtoc{ margin-top:12px; }
   </style></head>
   <body><div class="wrap">
     <header class="paper grid">
       <div class="title">${escapeHTML(novel.title)}</div>
       <div class="toolbar">
+        <button id="btnToc">目次</button>
         <button id="prev">←</button>
         <input id="pageNum" type="number" min="1" />
         <button id="next">→</button>
       </div>
     </header>
-    <main class="paper">
+
+    <!-- 読書ビュー -->
+    <main id="viewPage" class="paper">
       <h2 id="h"></h2>
       <pre id="content"></pre>
+      <div class="backtoc">
+        <button id="backToToc">目次に戻る</button>
+      </div>
     </main>
+
+    <!-- 目次 -->
+    <section id="toc" class="paper hidden" aria-label="目次">
+      <h2 style="margin-top:0">目次</h2>
+      <nav id="tocList"></nav>
+    </section>
+
     <section class="paper" style="margin-top:12px">
       <div class="muted" style="margin-bottom:6px">ページ一覧</div>
       <nav class="pages" id="plist"></nav>
@@ -524,32 +549,131 @@ function buildReaderHTML(novel){
   const pre = document.getElementById('content');
   const plist = document.getElementById('plist');
   const pageNum = document.getElementById('pageNum');
+  const viewPage = document.getElementById('viewPage');
+  const toc = document.getElementById('toc');
+  const tocList = document.getElementById('tocList');
+  const btnToc = document.getElementById('btnToc');
+  const backToToc = document.getElementById('backToToc');
+
+  // ===== IndexedDB (前回ページ記憶) =====
+  const DB_NAME = 'novel_reader';
+  const STORE = 'progress';
+  const KEY = 'title:' + Data.title;
+
+  function idbOpen(){
+    return new Promise((resolve, reject)=>{
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = (e)=>{
+        const db = req.result;
+        if(!db.objectStoreNames.contains(STORE)){
+          db.createObjectStore(STORE, { keyPath: 'key' });
+        }
+      };
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error);
+    });
+  }
+  async function saveProgress(page){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put({ key: KEY, page, updatedAt: Date.now() });
+      tx.oncomplete = ()=> db.close();
+    }catch(e){ /* ignore */ }
+  }
+  async function loadProgress(){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE, 'readonly');
+      const getReq = tx.objectStore(STORE).get(KEY);
+      const val = await new Promise(res=>{ getReq.onsuccess=()=>res(getReq.result); getReq.onerror=()=>res(null); });
+      db.close();
+      return (val && typeof val.page === 'number') ? val.page : null;
+    }catch(e){ return null }
+  }
+
+  // ===== UI =====
   function setPage(num){
     const p = Data.pages.find(x=>x.number===num) || Data.pages[0]; if(!p) return;
-    current = p.number; h.textContent = (p.title? p.title+" / ":"") + p.number + ' ページ目';
-    pre.textContent = p.text; pageNum.value = current; renderList();
+    current = p.number;
+    h.textContent = (p.title? p.title+" / ":"") + p.number + ' ページ目';
+    pre.textContent = p.text;
+    pageNum.value = current;
+    renderList();
     document.querySelectorAll('nav.pages button').forEach(b=> b.setAttribute('aria-current', b.dataset.num==current?'page':'false'));
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // ページ上部へスクロール
+    showReader();
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // ページ上部へ
+    saveProgress(current);
   }
+
   function renderList(){
     plist.innerHTML = '';
-    Data.pages.sort((a,b)=>a.number-b.number).forEach(p=>{
+    const pagesSorted = [...Data.pages].sort((a,b)=>a.number-b.number);
+    pagesSorted.forEach(p=>{
       const b = document.createElement('button');
-      b.textContent = p.number; b.dataset.num = p.number; b.addEventListener('click', ()=> setPage(p.number));
+      b.textContent = p.number;
+      b.dataset.num = p.number;
+      b.addEventListener('click', ()=> setPage(p.number));
       if(p.number===current) b.setAttribute('aria-current','page');
       plist.appendChild(b);
-    })
+    });
+
+    // TOC
+    tocList.innerHTML = '';
+    pagesSorted.forEach(p=>{
+      const item = document.createElement('div');
+      item.className = 'toc-item';
+      item.addEventListener('click', ()=> setPage(p.number));
+      const num = document.createElement('div');
+      num.className = 'toc-num';
+      num.textContent = \`\${p.number} ページ目\`;
+      const title = document.createElement('div');
+      title.className = 'toc-title';
+      title.textContent = p.title || 'タイトル未設定';
+      const preview = document.createElement('div');
+      preview.className = 'muted';
+      const txt = (p.text || '').replace(/\\s+/g,' ').slice(0, 80);
+      preview.textContent = txt ? ' … ' + txt + (p.text.length>80 ? '…' : '') : '';
+      item.append(num, title, preview);
+      tocList.appendChild(item);
+    });
   }
+
+  function showTOC(){
+    toc.classList.remove('hidden');
+    viewPage.classList.add('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function showReader(){
+    viewPage.classList.remove('hidden');
+    toc.classList.add('hidden');
+  }
+
   document.getElementById('prev').onclick = ()=> setPage(Math.max(1, current-1));
   document.getElementById('next').onclick = ()=> setPage(Math.min(Math.max(...Data.pages.map(p=>p.number)), current+1));
-  pageNum.addEventListener('change', ()=>{ const v = Number(pageNum.value)||1; setPage(v) })
+  pageNum.addEventListener('change', ()=>{ const v = Number(pageNum.value)||1; setPage(v) });
   window.addEventListener('keydown', (e)=>{
     if(['ArrowLeft','h'].includes(e.key)) setPage(Math.max(1, current-1));
     if(['ArrowRight','l'].includes(e.key)) setPage(Math.min(Math.max(...Data.pages.map(p=>p.number)), current+1));
-  })
-  setPage(1);
+    if(e.key==='t') showTOC();
+  });
+  btnToc.addEventListener('click', showTOC);
+  backToToc.addEventListener('click', showTOC);
+
+  (async ()=>{
+    renderList();
+    const saved = await loadProgress();
+    if(saved && Data.pages.some(p=>p.number===saved)){
+      setPage(saved);
+    }else{
+      setPage(1);
+    }
+  })();
   </[[script]]script>
   </body></html>
+
+
+
 `.replace("/[[script]]", "/");
 }
 
