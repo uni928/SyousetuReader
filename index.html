@@ -194,7 +194,7 @@
         <div class="section-title">右：小説本文エディタ</div>
         <div class="grid2">
           <div class="field"><label>選択中の小説名</label><input id="currentNovelName" placeholder="小説名"/></div>
-          <div class="field"><label>現在のページ</label><input id="currentPageLabel" readonly/></div>
+          <div class="field"><label>ページタイトル</label><input id="currentPageTitle" placeholder="ページタイトル（例：序章）"/></div>
         </div>
         <div class="editor" style="margin-top:10px">
           <div class="editor-toolbar">
@@ -351,7 +351,7 @@ function renderEditorPane(){
   const novel = getSelectedNovel(); if(!novel){ return }
   const page = getPage(novel, Model.selectedPageNumber);
   el.currentNovelName.value = novel.title;
-  el.currentPageLabel.value = page ? `${page.number} ページ目（${page.title||'タイトル未設定'}）` : '';
+  document.getElementById('currentPageTitle').value = page?.title || '';
   el.editor.value = page?.text ?? '';
 }
 
@@ -427,6 +427,14 @@ el.editor.addEventListener('input', ()=>{
   const n = getSelectedNovel(); if(!n) return; const p = getPage(n, Model.selectedPageNumber); if(!p) return;
   p.text = el.editor.value;
 })
+
+// ページタイトル変更
+document.getElementById('currentPageTitle').addEventListener('input', (e)=>{
+  const n = getSelectedNovel(); if(!n) return;
+  const p = getPage(n, Model.selectedPageNumber); if(!p) return;
+  p.title = e.target.value.trim();
+  renderPages(); // 左リスト更新
+});
 
 el.applyTitle.onclick = ()=>{
   const n = getSelectedNovel(); if(!n) return; n.title = el.currentNovelName.value.trim() || n.title; renderAll();
