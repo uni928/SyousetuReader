@@ -127,6 +127,23 @@
   @media (max-width: 980px){
     .workspace{ grid-template-columns: 1fr; }
   }
+/* ▼ Mobile: ヘッダーを非sticky＆コンパクト化（≤640px） */
+@media (max-width: 640px){
+  header.appbar{
+    position: static;   /* ← 追従しない */
+    top: auto;
+    padding: 8px 12px;  /* コンパクト */
+    gap: 10px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.18);
+  }
+  .brand{ font-size: 14px; }
+  .brand .logo{ width:22px; height:22px; border-radius:7px; }
+  .row .pill{ display:none; }         /* 長文ヒントは隠す */
+  .btn{ padding:8px 10px; border-radius:10px; box-shadow:none; }
+  .topbar{ grid-template-columns: 1fr; gap: 10px; } /* 上段を1カラムに */
+  .workspace{ grid-template-columns: 1fr; }         /* 既存の@media(980px)より強めの指定 */
+}
 </style>
 </head>
 <body>
