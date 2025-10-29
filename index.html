@@ -601,6 +601,28 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
   const autoScrollChk = document.getElementById('autoScroll');
   let autoScrollRAF = null; // ★ Android向け自動スクロールのフォールバック
 
+  // ===== Wake Lock（スリープ抑止）=====
+  let wakeLock = null;
+  async function requestWakeLock(){
+    try{
+      if('wakeLock' in navigator && !wakeLock){
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', ()=>{ wakeLock = null; });
+      }
+    }catch(e){ /* 一部ブラウザ/端末で未対応 */ }
+  }
+  async function releaseWakeLock(){
+    try{ if(wakeLock){ await wakeLock.release(); wakeLock = null; } }catch(e){}
+  }
+  // タブ復帰時に取り直し
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'visible' && autoReading && window.speechSynthesis?.speaking){
+      requestWakeLock();
+    }
+  });
+  // ページ離脱で解放
+  window.addEventListener('pagehide', ()=> releaseWakeLock());
+
   // ===== IndexedDB (前回ページ記憶) =====
   const DB_NAME = 'novel_reader';
   const STORE = 'progress';
@@ -707,6 +729,7 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
       ttsPause.disabled = false;
       ttsStop.disabled = false;
       ttsToggle.textContent = '⏹ 自動読み上げ中';
+      releaseWakeLock(); // ★ 再生終了で解放
     };
     u.onend = ()=> {
       ttsPause.disabled = true;
@@ -735,8 +758,10 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
   function pauseTTS(){
     if(window.speechSynthesis && window.speechSynthesis.speaking && !window.speechSynthesis.paused){
       window.speechSynthesis.pause();
+      releaseWakeLock(); // ★ 一時停止で解放
     }else if(window.speechSynthesis && window.speechSynthesis.paused){
       window.speechSynthesis.resume();
+      requestWakeLock(); // ★ 再開で再取得
     }
   }
 
@@ -745,6 +770,7 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
       window.speechSynthesis.cancel();
     }
     currentUtterance = null;
+    releaseWakeLock(); // ★ 完全停止で解放
     if(!silent){
       ttsPause.disabled = true;
       ttsStop.disabled = true;
