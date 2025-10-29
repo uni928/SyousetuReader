@@ -783,23 +783,36 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
 
     // TOC
     tocList.innerHTML = '';
-    pagesSorted.forEach(p=>{
-      const item = document.createElement('div');
-      item.className = 'toc-item';
-      item.addEventListener('click', ()=> setPage(p.number));
-      const num = document.createElement('div');
-      num.className = 'toc-num';
-      num.textContent = \`\${p.number} ページ目\`;
-      const title = document.createElement('div');
-      title.className = 'toc-title';
-      title.textContent = p.title || 'タイトル未設定';
-      const preview = document.createElement('div');
-      preview.className = 'muted';
-      const txt = (p.text || '').replace(/\s+/g,' ').slice(0, 80);
-      preview.textContent = txt ? ' … ' + txt + ((p.text||'').length>80 ? '…' : '') : '';
-      item.append(num, title, preview);
-      tocList.appendChild(item);
-    });
+// 現在ページの前2～後4のみを表示
+const start = Math.max(0, pagesSorted.findIndex(p => p.number === current) - 2);
+const end = Math.min(pagesSorted.length, start + 7); // 前2+自身+後4＝最大7件
+const visiblePages = pagesSorted.slice(start, end);
+
+visiblePages.forEach(p => {
+  const item = document.createElement('div');
+  item.className = 'toc-item';
+  item.style.padding = '6px 8px';
+  item.style.borderRadius = '8px';
+  item.style.fontSize = '14px';
+  item.style.lineHeight = '1.4';
+  item.style.border = '1px solid color-mix(in oklab, var(--muted) 20%, transparent)';
+  item.addEventListener('click', ()=> setPage(p.number));
+
+  const num = document.createElement('div');
+  num.className = 'toc-num';
+  num.style.fontSize = '13px';
+  num.style.color = 'var(--muted)';
+  num.textContent = p.number + ' ページ目';
+
+  const title = document.createElement('div');
+  title.className = 'toc-title';
+  title.style.fontWeight = '600';
+  title.textContent = p.title || 'タイトル未設定';
+
+  item.append(num, title);
+  tocList.appendChild(item);
+});
+
   }
 
   function showTOC(){
