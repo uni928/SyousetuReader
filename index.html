@@ -669,15 +669,25 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
     return lineEnds.length - 1;
   }
 
+  // 読んでいる行をビュー中央にピンポイントで合わせる
+  let lastHighlightedLine = -1;
+  function centerOnElement(el){
+    const headerH = (document.querySelector('header')?.getBoundingClientRect()?.height) || 0;
+    const rect = el.getBoundingClientRect();
+    const targetY = window.scrollY + rect.top - ((window.innerHeight - rect.height) / 2) - (headerH / 2);
+    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+  }
   function highlightLineByChar(charIndex){
     const idx = lineIndexFromChar(charIndex);
+    if(idx === lastHighlightedLine) return; // 同じ行なら何もしない
+    lastHighlightedLine = idx;
     const nodes = pre.querySelectorAll('.line');
     nodes.forEach(n=> n.classList.remove('current'));
     const n = nodes[idx];
     if(!n) return;
     n.classList.add('current');
     if(autoScrollChk.checked){
-      n.scrollIntoView({ block:'center', behavior:'smooth' });
+      centerOnElement(n);
     }
   }
 
@@ -697,13 +707,11 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
       ttsPause.disabled = false;
       ttsStop.disabled = false;
       ttsToggle.textContent = '⏹ 自動読み上げ中';
-      startAutoScroll(); // ★ フォールバック開始
     };
     u.onend = ()=> {
       ttsPause.disabled = true;
       ttsStop.disabled = true;
       ttsToggle.textContent = '▶ 自動読み上げ';
-      stopAutoScroll(); // ★ 停止
       // 自動で次ページへ
       if(autoReading){
         const maxPage = Math.max(...Data.pages.map(p=>p.number));
@@ -727,10 +735,8 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
   function pauseTTS(){
     if(window.speechSynthesis && window.speechSynthesis.speaking && !window.speechSynthesis.paused){
       window.speechSynthesis.pause();
-      stopAutoScroll(); // ★ 一時停止中はスクロール停止
     }else if(window.speechSynthesis && window.speechSynthesis.paused){
       window.speechSynthesis.resume();
-      startAutoScroll(); // ★ 再開時にスクロール再開
     }
   }
 
@@ -739,7 +745,6 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
       window.speechSynthesis.cancel();
     }
     currentUtterance = null;
-    stopAutoScroll(); // ★ 停止
     if(!silent){
       ttsPause.disabled = true;
       ttsStop.disabled = true;
@@ -748,40 +753,6 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
     // ハイライト解除
     pre.querySelectorAll('.line').forEach(n=> n.classList.remove('current'));
   }
-
-
-  // ===== 自動スクロール（Androidフォールバック） =====
-  function startAutoScroll(){
-    stopAutoScroll();
-    if(!autoScrollChk.checked) return;
-    let lastTs = null;
-    const SPEED = 80; // px/sec（必要に応じて調整）
-    function tick(ts){
-      if(!autoReading || !window.speechSynthesis || !window.speechSynthesis.speaking){
-        autoScrollRAF = null;
-        return;
-      }
-      if(lastTs != null){
-        const dt = (ts - lastTs) / 1000;
-        window.scrollBy(0, SPEED * dt);
-      }
-      lastTs = ts;
-      autoScrollRAF = requestAnimationFrame(tick);
-    }
-    autoScrollRAF = requestAnimationFrame(tick);
-  }
-  function stopAutoScroll(){
-    if(autoScrollRAF){ cancelAnimationFrame(autoScrollRAF); autoScrollRAF = null; }
-  }
-
-  // チェックボックス変更で即反映
-  autoScrollChk.addEventListener('change', ()=>{
-    if(autoScrollChk.checked && autoReading && window.speechSynthesis && window.speechSynthesis.speaking){
-      startAutoScroll();
-    }else{
-      stopAutoScroll();
-    }
-  });
 
   // ===== UI =====
   function setPage(num, opts={}){
