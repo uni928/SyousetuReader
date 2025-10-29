@@ -519,7 +519,8 @@ function buildReaderHTML(novel){
   *{box-sizing:border-box}
   body{ margin:0; background:radial-gradient(1000px 600px at 10% -10%, color-mix(in oklab, var(--accent) 10%, transparent), transparent), var(--bg); color:var(--ink); font: 16px/1.9 "BIZ UD明朝", "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif; }
   .wrap{ max-width:900px; margin: 24px auto; padding: 0 16px 40px; }
-  header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:center; background: color-mix(in oklab, var(--paper) 80%, transparent); backdrop-filter: blur(6px); border-bottom:1px solid color-mix(in oklab, var(--muted) 25%, transparent); }
+header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:center; background: color-mix(in oklab, var(--paper) 80%, transparent); backdrop-filter: blur(6px); border-bottom:1px solid color-mix(in oklab, var(--muted) 25%, transparent); }
++  header{
   header .title{ font-weight:800; padding:14px 0; }
   .paper{ background: var(--paper); border-radius: var(--radius); padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
   .muted{ color:var(--muted) }
@@ -545,7 +546,7 @@ function buildReaderHTML(novel){
   </style></head>
   <body><div class="wrap">
     <header class="paper grid">
-      <div class="title">${escapeHTML(novel.title)}</div>
+      <!--<div class="title">${escapeHTML(novel.title)}</div>-->
       <div class="toolbar">
         <button id="btnToc">目次</button>
         <button id="prev">←</button>
