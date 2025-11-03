@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="ja">
 <head>
@@ -511,6 +510,10 @@ function buildReaderHTML(novel){
   return `
 
 
+
+
+
+
 <!doctype html><html lang="ja"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>${escapeHTML(novel.title)} | 閲覧</title>
   <style>
@@ -519,25 +522,61 @@ function buildReaderHTML(novel){
   *{box-sizing:border-box}
   body{ margin:0; background:radial-gradient(1000px 600px at 10% -10%, color-mix(in oklab, var(--accent) 10%, transparent), transparent), var(--bg); color:var(--ink); font: 16px/1.9 "BIZ UD明朝", "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif; }
   .wrap{ max-width:900px; margin: 24px auto; padding: 0 16px 40px; }
-header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:center; background: color-mix(in oklab, var(--paper) 80%, transparent); backdrop-filter: blur(6px); border-bottom:1px solid color-mix(in oklab, var(--muted) 25%, transparent); }
-+  header{
-  header .title{ font-weight:800; padding:14px 0; }
+  header{
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: color-mix(in oklab, var(--paper) 80%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid color-mix(in oklab, var(--muted) 25%, transparent);
+    max-width: 1920px;
+    margin: 0 auto;
+    border-radius: 0 0 12px 12px;
+    padding: 8px 12px;
+    height: 60px;
+    overflow: hidden;
+  }
+  header .title{ font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .paper{ background: var(--paper); border-radius: var(--radius); padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
   .muted{ color:var(--muted) }
-  .grid{ display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center; }
-  .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .toolbar button, .toolbar label{ padding:8px 12px; border-radius:10px; border:1px solid color-mix(in oklab, var(--muted) 25%, transparent); background:transparent; color:inherit; cursor:pointer; }
-  .toolbar input[type="number"], .toolbar select{ padding:8px 10px; border-radius:10px; border:1px solid color-mix(in oklab, var(--muted) 25%, transparent); background:transparent; color:inherit; text-align:center; }
+  .grid{ display:grid; grid-template-columns: 1fr; }
+  .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:nowrap; overflow:hidden; }
+  .toolbar button, .toolbar label{
+    padding:4px 6px;                /* コンパクト化 */
+    border-radius:8px;
+    font-size:13px;                 /* 文字を小さく */
+    border:1px solid color-mix(in oklab, var(--muted) 25%, transparent);
+    background:transparent;
+    color:inherit;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .toolbar input[type="number"], .toolbar select{
+    padding:4px 6px;                /* 入力欄も小さめ */
+    border-radius:8px;
+    font-size:13px;
+    border:1px solid color-mix(in oklab, var(--muted) 25%, transparent);
+    background:transparent;
+    color:inherit;
+    text-align:center;
+    width:4.5em;                    /* 幅を短く */
+  }
+  .toolbar{ gap:4px; }              /* 要素間の隙間を縮小 */
+  header .title{ font-size:14px; }  /* タイトルもやや小さく */
   h2{ margin:.2em 0 .6em; font-size: 20px; }
   pre{ white-space: pre-wrap; word-wrap: break-word; font: 17px/2 "YuMincho", "BIZ UD明朝", serif; margin:0; }
   nav.pages{ display:flex; gap:8px; flex-wrap:wrap; }
   nav.pages button{ padding:6px 10px; border-radius:999px; border:1px solid color-mix(in oklab, var(--muted) 25%, transparent); background:transparent; color:inherit; cursor:pointer; }
   nav.pages button[aria-current="page"]{ background: color-mix(in oklab, var(--accent) 25%, transparent); }
-  #tocList{ display:grid; grid-template-columns: 1fr; gap:10px; }
-  .toc-item{ display:flex; gap:12px; align-items:baseline; padding:12px 14px; border-radius:12px; border:1px solid color-mix(in oklab, var(--muted) 25%, transparent); background: color-mix(in oklab, var(--paper) 85%, transparent); cursor:pointer; }
-  .toc-item:hover{ outline: 2px solid color-mix(in oklab, var(--accent) 35%, transparent); }
-  .toc-num{ font-weight:800; min-width:6em; color:var(--muted); }
-  .toc-title{ font-weight:700; }
+  #tocList{ display:grid; grid-template-columns: 1fr; gap:8px; }
+  .toc-item{ display:flex; gap:10px; align-items:baseline; padding:6px 8px; border-radius:8px; border:1px solid color-mix(in oklab, var(--muted) 20%, transparent); background: color-mix(in oklab, var(--paper) 85%, transparent); cursor:pointer; font-size:14px; line-height:1.4; }
+  .toc-num{ font-weight:800; min-width:6em; color:var(--muted); font-size:13px; }
+  .toc-title{ font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .hidden{ display:none; }
   .backtoc{ margin-top:12px; }
   /* 読み上げハイライト */
@@ -545,19 +584,16 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
   .line.current{ background: color-mix(in oklab, var(--accent) 25%, transparent); border-radius: 6px; }
   </style></head>
   <body><div class="wrap">
-    <header class="paper grid">
-      <!--<div class="title">${escapeHTML(novel.title)}</div>-->
+    <header class="paper">
       <div class="toolbar">
         <button id="btnToc">目次</button>
         <button id="prev">←</button>
         <input id="pageNum" type="number" min="1" />
         <button id="next">→</button>
-
-        <!-- 読み上げコントロール -->
         <button id="ttsToggle">▶ 自動読み上げ</button>
         <button id="ttsPause" disabled>⏸ 一時停止</button>
         <button id="ttsStop" disabled>■ 停止</button>
-        <label>速度 <input id="rate" type="number" min="0.5" max="2" step="0.1" value="1.0" style="width:5.5em"></label>
+        <label>速度 <input id="rate" type="number" min="0.5" max="2" step="0.1" value="1.0"></label>
         <label><input id="autoScroll" type="checkbox" checked> 自動スクロール</label>
       </div>
     </header>
@@ -583,7 +619,14 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
     </section>
   </div>
   <script>
+  // =========================
+  // データ
+  // =========================
   const Data = ${payload};
+
+  // =========================
+  // 要素参照
+  // =========================
   let current = 1;
   const h = document.getElementById('h');
   const pre = document.getElementById('content');
@@ -599,79 +642,152 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
   const ttsStop = document.getElementById('ttsStop');
   const rateInput = document.getElementById('rate');
   const autoScrollChk = document.getElementById('autoScroll');
-  let autoScrollRAF = null; // ★ Android向け自動スクロールのフォールバック
 
-  // ===== Wake Lock（スリープ抑止）=====
-  let wakeLock = null;
-  async function requestWakeLock(){
-    try{
-      if('wakeLock' in navigator && !wakeLock){
-        wakeLock = await navigator.wakeLock.request('screen');
-        wakeLock.addEventListener('release', ()=>{ wakeLock = null; });
-      }
-    }catch(e){ /* 一部ブラウザ/端末で未対応 */ }
-  }
-  async function releaseWakeLock(){
-    try{ if(wakeLock){ await wakeLock.release(); wakeLock = null; } }catch(e){}
-  }
-  // タブ復帰時に取り直し
-  document.addEventListener('visibilitychange', ()=>{
-    if(document.visibilityState === 'visible' && autoReading && window.speechSynthesis?.speaking){
-      requestWakeLock();
-    }
-  });
-  // ページ離脱で解放
-  window.addEventListener('pagehide', ()=> releaseWakeLock());
-
-  // ===== IndexedDB (前回ページ記憶) =====
+  // =========================
+  // IndexedDB
+  // =========================
   const DB_NAME = 'novel_reader';
   const STORE = 'progress';
+  const STORE_TTS = 'tts_resume';
+  const STORE_PREFS = 'prefs';
   const KEY = 'title:' + Data.title;
 
   function idbOpen(){
-    return new Promise((resolve, reject)=>{
-      const req = indexedDB.open(DB_NAME, 1);
-      req.onupgradeneeded = ()=>{
+    return new Promise(function(resolve, reject){
+      const req = indexedDB.open(DB_NAME, 22);
+      req.onupgradeneeded = function(){
         const db = req.result;
         if(!db.objectStoreNames.contains(STORE)){
           db.createObjectStore(STORE, { keyPath: 'key' });
         }
+        if(!db.objectStoreNames.contains(STORE_TTS)){
+          db.createObjectStore(STORE_TTS, { keyPath: 'key' });
+        }
+        if(!db.objectStoreNames.contains(STORE_PREFS)){
+          db.createObjectStore(STORE_PREFS, { keyPath: 'key' });
+        }
       };
-      req.onsuccess = ()=> resolve(req.result);
-      req.onerror = ()=> reject(req.error);
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
     });
   }
   async function saveProgress(page){
     try{
       const db = await idbOpen();
       const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).put({ key: KEY, page, updatedAt: Date.now() });
-      tx.oncomplete = ()=> db.close();
-    }catch(e){ /* ignore */ }
+      tx.objectStore(STORE).put({ key: KEY, page: page, updatedAt: Date.now() });
+      tx.oncomplete = function(){ db.close(); };
+    }catch(e){}
   }
   async function loadProgress(){
     try{
       const db = await idbOpen();
       const tx = db.transaction(STORE, 'readonly');
       const getReq = tx.objectStore(STORE).get(KEY);
-      const val = await new Promise(res=>{ getReq.onsuccess=()=>res(getReq.result); getReq.onerror=()=>res(null); });
+      const val = await new Promise(function(res){ getReq.onsuccess=function(){ res(getReq.result); }; getReq.onerror=function(){ res(null); }; });
       db.close();
       return (val && typeof val.page === 'number') ? val.page : null;
-    }catch(e){ return null }
+    }catch(e){ return null; }
+  }
+  function ttsKey(page){ return 'tts:' + Data.title + ':' + page; }
+  async function saveTTSOffset(page, offset){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_TTS, 'readwrite');
+      tx.objectStore(STORE_TTS).put({ key: ttsKey(page), page: page, offset: offset, updatedAt: Date.now() });
+      tx.oncomplete = function(){ db.close(); };
+    }catch(e){}
+  }
+  async function loadTTSOffset(page){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_TTS, 'readonly');
+      const req = tx.objectStore(STORE_TTS).get(ttsKey(page));
+      const val = await new Promise(function(res){ req.onsuccess=function(){ res(req.result); }; req.onerror=function(){ res(null); }; });
+      db.close();
+      return (val && typeof val.offset === 'number') ? val.offset : 0;
+    }catch(e){ return 0; }
+  }
+  async function saveRate(val){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_PREFS, 'readwrite');
+      tx.objectStore(STORE_PREFS).put({ key: 'tts_rate', value: Number(val), updatedAt: Date.now() });
+      tx.oncomplete = function(){ db.close(); };
+    }catch(e){}
+  }
+  async function loadRate(){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_PREFS, 'readonly');
+      const req = tx.objectStore(STORE_PREFS).get('tts_rate');
+      const val = await new Promise(function(res){ req.onsuccess=function(){ res(req.result); }; req.onerror=function(){ res(null); }; });
+      db.close();
+      return (val && typeof val.value === 'number') ? val.value : null;
+    }catch(e){ return null; }
   }
 
-  // ===== 読み上げ制御 =====
+  // =========================
+  // 読み上げ制御
+  // =========================
   let autoReading = false;
   let currentUtterance = null;
-  let lineEnds = []; // 各行の累積文字末尾index
+  let lineEnds = [];
   let textCache = '';
+  let lastHighlightedLine = -1;
+
+  // 再開位置管理
+  let lastCharIndexAbs = 0;
+  let currentBaseOffset = 0;
+  let ttsSaveNextAt = 0;
+
+  // Wake Lock
+  let wakeLock = null;
+  async function requestWakeLock(){
+    try{
+      if('wakeLock' in navigator && !wakeLock){
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', function(){ wakeLock = null; });
+      }
+    }catch(e){}
+  }
+  async function releaseWakeLock(){
+    try{ if(wakeLock){ await wakeLock.release(); wakeLock = null; } }catch(e){}
+  }
+
+  // Android向け自動スクロールフォールバック
+  let autoScrollRAF = null;
+  function startAutoScroll(){
+    stopAutoScroll();
+    if(!autoScrollChk.checked) return;
+    let lastTs = null;
+    const SPEED = 80; // px/sec
+    function tick(ts){
+      if(!autoReading || !window.speechSynthesis || !window.speechSynthesis.speaking){
+        autoScrollRAF = null;
+        return;
+      }
+      if(lastTs != null){
+        const dt = (ts - lastTs) / 1000;
+        window.scrollBy(0, SPEED * dt);
+      }
+      lastTs = ts;
+      autoScrollRAF = requestAnimationFrame(tick);
+    }
+    autoScrollRAF = requestAnimationFrame(tick);
+  }
+  function stopAutoScroll(){
+    if(autoScrollRAF){ cancelAnimationFrame(autoScrollRAF); autoScrollRAF = null; }
+  }
 
   function splitIntoLines(text){
+    // pre内を行ごとにspanで区切る（ハイライト＆スクロール用）
     pre.innerHTML = '';
-    const lines = text.split(/\\n/);
+    const lines = text.split('\\n');
     lineEnds = [];
     let acc = 0;
-    lines.forEach((ln, i)=>{
+    for(var i=0;i<lines.length;i++){
+      const ln = lines[i];
       const span = document.createElement('span');
       span.className = 'line';
       span.textContent = ln.length ? ln : ' ';
@@ -679,32 +795,29 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
       if(i < lines.length - 1){
         pre.appendChild(document.createTextNode('\\n'));
       }
-      acc += ln.length + (i < lines.length - 1 ? 1 : 0); // +1 for newline
+      acc += ln.length + (i < lines.length - 1 ? 1 : 0);
       lineEnds.push(acc);
-    });
+    }
   }
-
   function lineIndexFromChar(charIndex){
-    for(let i=0;i<lineEnds.length;i++){
+    for(var i=0;i<lineEnds.length;i++){
       if(charIndex < lineEnds[i]) return i;
     }
     return lineEnds.length - 1;
   }
-
-  // 読んでいる行をビュー中央にピンポイントで合わせる
-  let lastHighlightedLine = -1;
   function centerOnElement(el){
-    const headerH = (document.querySelector('header')?.getBoundingClientRect()?.height) || 0;
+    const header = document.querySelector('header');
+    const headerH = header ? header.getBoundingClientRect().height : 0;
     const rect = el.getBoundingClientRect();
     const targetY = window.scrollY + rect.top - ((window.innerHeight - rect.height) / 2) - (headerH / 2);
     window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
   }
   function highlightLineByChar(charIndex){
     const idx = lineIndexFromChar(charIndex);
-    if(idx === lastHighlightedLine) return; // 同じ行なら何もしない
+    if(idx === lastHighlightedLine) return;
     lastHighlightedLine = idx;
     const nodes = pre.querySelectorAll('.line');
-    nodes.forEach(n=> n.classList.remove('current'));
+    for(var i=0;i<nodes.length;i++){ nodes[i].classList.remove('current'); }
     const n = nodes[idx];
     if(!n) return;
     n.classList.add('current');
@@ -713,42 +826,60 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
     }
   }
 
-  function speakPage(){
-    stopTTS(true); // true = silent cancel
-    const p = Data.pages.find(x=>x.number===current);
+  async function speakPage(opts){
+    if(!opts) opts = {};
+    stopTTS(true);
+    const p = Data.pages.find(function(x){ return x.number===current; });
     if(!p) return;
     textCache = p.text || '';
+
+    // 再開位置
+    const startFrom = opts.fromStart ? 0 : await loadTTSOffset(current);
+    currentBaseOffset = startFrom;
+    lastCharIndexAbs = startFrom;
+
     splitIntoLines(textCache);
 
     if(!('speechSynthesis' in window)){ console.warn('speechSynthesis未対応'); return; }
-    const u = new SpeechSynthesisUtterance(textCache);
+    const u = new SpeechSynthesisUtterance(textCache.slice(startFrom));
     u.lang = 'ja-JP';
     const r = parseFloat(rateInput.value || '1') || 1;
     u.rate = Math.min(2, Math.max(0.5, r));
-    u.onstart = ()=> {
+    u.onstart = function(){
       ttsPause.disabled = false;
       ttsStop.disabled = false;
       ttsToggle.textContent = '⏹ 自動読み上げ中';
-      releaseWakeLock(); // ★ 再生終了で解放
+      startAutoScroll();
+      requestWakeLock();
     };
-    u.onend = ()=> {
+    u.onend = function(){
       ttsPause.disabled = true;
       ttsStop.disabled = true;
       ttsToggle.textContent = '▶ 自動読み上げ';
-      // 自動で次ページへ
+      stopAutoScroll();
+      releaseWakeLock();
+      // ページ終了時は次回開始位置を先頭に戻す
+      saveTTSOffset(current, 0);
       if(autoReading){
-        const maxPage = Math.max(...Data.pages.map(p=>p.number));
+        const maxPage = Math.max.apply(null, Data.pages.map(function(pp){ return pp.number; }));
         if(current < maxPage){
           setPage(current + 1, { keepAuto:true });
-          speakPage();
+          speakPage({ fromStart:true });
         }else{
-          autoReading = false; // 最終ページで停止
+          autoReading = false;
         }
       }
     };
-    u.onboundary = (e)=>{
-      if(e.name === 'word' || e.charIndex != null){
-        highlightLineByChar(e.charIndex);
+    u.onboundary = function(e){
+      if(e && (e.name === 'word' || typeof e.charIndex === 'number')){
+        const abs = (e.charIndex || 0) + currentBaseOffset;
+        lastCharIndexAbs = abs;
+        highlightLineByChar(abs);
+        const now = performance.now();
+        if(now >= ttsSaveNextAt){
+          saveTTSOffset(current, abs);
+          ttsSaveNextAt = now + 500;
+        }
       }
     };
     currentUtterance = u;
@@ -758,98 +889,102 @@ header{ position:sticky; top:0; z-index:20; display:flex; gap:10px; align-items:
   function pauseTTS(){
     if(window.speechSynthesis && window.speechSynthesis.speaking && !window.speechSynthesis.paused){
       window.speechSynthesis.pause();
-      releaseWakeLock(); // ★ 一時停止で解放
+      stopAutoScroll();
+      releaseWakeLock();
+      saveTTSOffset(current, lastCharIndexAbs);
     }else if(window.speechSynthesis && window.speechSynthesis.paused){
       window.speechSynthesis.resume();
-      requestWakeLock(); // ★ 再開で再取得
+      startAutoScroll();
+      requestWakeLock();
     }
   }
-
-  function stopTTS(silent=false){
+  function stopTTS(silent){
     if(window.speechSynthesis){
       window.speechSynthesis.cancel();
     }
     currentUtterance = null;
-    releaseWakeLock(); // ★ 完全停止で解放
+    stopAutoScroll();
+    releaseWakeLock();
     if(!silent){
       ttsPause.disabled = true;
       ttsStop.disabled = true;
       ttsToggle.textContent = '▶ 自動読み上げ';
     }
-    // ハイライト解除
-    pre.querySelectorAll('.line').forEach(n=> n.classList.remove('current'));
+    const nodes = pre.querySelectorAll('.line');
+    for(var i=0;i<nodes.length;i++){ nodes[i].classList.remove('current'); }
+    saveTTSOffset(current, lastCharIndexAbs);
   }
 
-  // ===== UI =====
-  function setPage(num, opts={}){
-    // 読み上げ中にページ移動したらキャンセル
+  // =========================
+  // UIロジック
+  // =========================
+  function setPage(num, opts){
+    if(!opts) opts = {};
     if(currentUtterance) stopTTS(true);
 
-    const p = Data.pages.find(x=>x.number===num) || Data.pages[0]; if(!p) return;
+    const p = Data.pages.find(function(x){ return x.number===num; }) || Data.pages[0];
+    if(!p) return;
     current = p.number;
-    h.textContent = (p.title? p.title+" / ":"") + p.number + ' ページ目';
-
-    // pre内容を行分割で描画（読み上げハイライトのため）
+    h.textContent = (p.title ? p.title + ' / ' : '') + p.number + ' ページ目';
     splitIntoLines(p.text || '');
 
     pageNum.value = current;
     renderList();
-    document.querySelectorAll('nav.pages button').forEach(b=> b.setAttribute('aria-current', b.dataset.num==current?'page':'false'));
+    const btns = document.querySelectorAll('nav.pages button');
+    for(var i=0;i<btns.length;i++){
+      var b = btns[i];
+      b.setAttribute('aria-current', (b.dataset.num == String(current)) ? 'page' : 'false');
+    }
     showReader();
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // ページ上部へ
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     saveProgress(current);
 
-    // 自動読み上げ再開
     if(autoReading || opts.keepAuto){
       autoReading = true;
-      speakPage();
+      speakPage({ fromStart:false });
     }
   }
 
   function renderList(){
+    // 下部のページ番号ボタン
     plist.innerHTML = '';
-    const pagesSorted = [...Data.pages].sort((a,b)=>a.number-b.number);
-    pagesSorted.forEach(p=>{
-      const b = document.createElement('button');
-      b.textContent = p.number;
-      b.dataset.num = p.number;
-      b.addEventListener('click', ()=> setPage(p.number));
-      if(p.number===current) b.setAttribute('aria-current','page');
-      plist.appendChild(b);
-    });
+    const pagesSorted = Data.pages.slice().sort(function(a,b){ return a.number - b.number; });
+    for(var i=0;i<pagesSorted.length;i++){
+      (function(p){
+        const b = document.createElement('button');
+        b.textContent = p.number;
+        b.dataset.num = String(p.number);
+        b.addEventListener('click', function(){ setPage(p.number); });
+        if(p.number===current) b.setAttribute('aria-current','page');
+        plist.appendChild(b);
+      })(pagesSorted[i]);
+    }
 
-    // TOC
+    // 目次（コンパクト・前2〜後4のみ）
     tocList.innerHTML = '';
-// 現在ページの前2～後4のみを表示
-const start = Math.max(0, pagesSorted.findIndex(p => p.number === current) - 2);
-const end = Math.min(pagesSorted.length, start + 7); // 前2+自身+後4＝最大7件
-const visiblePages = pagesSorted.slice(start, end);
+    var idxCur = pagesSorted.findIndex(function(p){ return p.number === current; });
+    var start = Math.max(0, idxCur - 2);
+    var end = Math.min(pagesSorted.length, start + 7); // 前2 + 自身 + 後4 = 最大7件
+    const visiblePages = pagesSorted.slice(start, end);
+    for(var j=0;j<visiblePages.length;j++){
+      (function(p){
+        const item = document.createElement('div');
+        item.className = 'toc-item';
+        item.addEventListener('click', function(){ setPage(p.number); });
 
-visiblePages.forEach(p => {
-  const item = document.createElement('div');
-  item.className = 'toc-item';
-  item.style.padding = '6px 8px';
-  item.style.borderRadius = '8px';
-  item.style.fontSize = '14px';
-  item.style.lineHeight = '1.4';
-  item.style.border = '1px solid color-mix(in oklab, var(--muted) 20%, transparent)';
-  item.addEventListener('click', ()=> setPage(p.number));
+        const num = document.createElement('div');
+        num.className = 'toc-num';
+        num.textContent = p.number + ' ページ目';
 
-  const num = document.createElement('div');
-  num.className = 'toc-num';
-  num.style.fontSize = '13px';
-  num.style.color = 'var(--muted)';
-  num.textContent = p.number + ' ページ目';
+        const title = document.createElement('div');
+        title.className = 'toc-title';
+        title.textContent = p.title || 'タイトル未設定';
 
-  const title = document.createElement('div');
-  title.className = 'toc-title';
-  title.style.fontWeight = '600';
-  title.textContent = p.title || 'タイトル未設定';
-
-  item.append(num, title);
-  tocList.appendChild(item);
-});
-
+        item.appendChild(num);
+        item.appendChild(title);
+        tocList.appendChild(item);
+      })(visiblePages[j]);
+    }
   }
 
   function showTOC(){
@@ -862,45 +997,75 @@ visiblePages.forEach(p => {
     toc.classList.add('hidden');
   }
 
-  document.getElementById('prev').onclick = ()=> setPage(Math.max(1, current-1));
-  document.getElementById('next').onclick = ()=> setPage(Math.min(Math.max(...Data.pages.map(p=>p.number)), current+1));
-  pageNum.addEventListener('change', ()=>{ const v = Number(pageNum.value)||1; setPage(v) });
-  window.addEventListener('keydown', (e)=>{
-    if(['ArrowLeft','h'].includes(e.key)) setPage(Math.max(1, current-1));
-    if(['ArrowRight','l'].includes(e.key)) setPage(Math.min(Math.max(...Data.pages.map(p=>p.number)), current+1));
+  // =========================
+  // イベント
+  // =========================
+  document.getElementById('prev').onclick = function(){ setPage(Math.max(1, current-1)); };
+  document.getElementById('next').onclick = function(){
+    const maxPage = Math.max.apply(null, Data.pages.map(function(p){ return p.number; }));
+    setPage(Math.min(maxPage, current+1));
+  };
+  pageNum.addEventListener('change', function(){ const v = Number(pageNum.value) || 1; setPage(v); });
+  window.addEventListener('keydown', function(e){
+    if(e.key==='ArrowLeft' || e.key==='h') setPage(Math.max(1, current-1));
+    if(e.key==='ArrowRight' || e.key==='l'){
+      const maxPage = Math.max.apply(null, Data.pages.map(function(p){ return p.number; }));
+      setPage(Math.min(maxPage, current+1));
+    }
     if(e.key==='t') showTOC();
-    if(e.key===' ' && autoReading){ e.preventDefault(); pauseTTS(); } // Spaceで一時停止/再開
+    if(e.key===' ' && autoReading){ e.preventDefault(); pauseTTS(); }
   });
   btnToc.addEventListener('click', showTOC);
   backToToc.addEventListener('click', showTOC);
 
   // 読み上げUI
-  ttsToggle.addEventListener('click', ()=>{
+  ttsToggle.addEventListener('click', function(){
     autoReading = !autoReading;
     if(autoReading){
       ttsToggle.textContent = '⏹ 自動読み上げ中';
-      speakPage();
+      speakPage({ fromStart:false });
     }else{
       ttsToggle.textContent = '▶ 自動読み上げ';
-      stopTTS();
+      stopTTS(false);
     }
   });
-  ttsPause.addEventListener('click', ()=> pauseTTS());
-  ttsStop.addEventListener('click', ()=> { autoReading=false; stopTTS(); });
+  ttsPause.addEventListener('click', function(){ pauseTTS(); });
+  ttsStop.addEventListener('click', function(){ autoReading=false; stopTTS(false); });
 
-  rateInput.addEventListener('change', ()=>{
-    // 速度変更は次の読み上げから反映。再生中なら一旦停止→再開
+  rateInput.addEventListener('change', function(){
+    // 再生中なら一旦停止→再開して反映
     if(window.speechSynthesis && window.speechSynthesis.speaking){
       const wasAuto = autoReading;
       stopTTS(true);
-      if(wasAuto){ speakPage(); }
+      if(wasAuto){ speakPage({ fromStart:false }); }
+    }
+    saveRate(rateInput.value);
+  });
+
+  // タブ可視状態
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'hidden'){
+      saveTTSOffset(current, lastCharIndexAbs);
+    }else if(document.visibilityState === 'visible'){
+      if(autoReading){
+        requestWakeLock();
+        if(!(window.speechSynthesis && window.speechSynthesis.speaking)){
+          speakPage({ fromStart:false });
+        }
+      }
     }
   });
 
-  (async ()=>{
+  // 初期化
+  (async function(){
+    // 速度を復元
+    const savedRate = await loadRate();
+    if(savedRate && !Number.isNaN(savedRate)){
+      rateInput.value = String(savedRate);
+    }
     renderList();
     const saved = await loadProgress();
-    if(saved && Data.pages.some(p=>p.number===saved)){
+    if(saved && Data.pages.some(function(p){ return p.number===saved; })){
       setPage(saved);
     }else{
       setPage(1);
@@ -908,6 +1073,10 @@ visiblePages.forEach(p => {
   })();
   </[[script]]script>
   </body></html>
+
+
+
+
 
 
 
