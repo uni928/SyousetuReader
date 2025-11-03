@@ -568,6 +568,38 @@ function buildReaderHTML(novel){
   }
   .toolbar{ gap:4px; }              /* 要素間の隙間を縮小 */
   header .title{ font-size:14px; }  /* タイトルもやや小さく */
+
+  /* --- 画面が狭いとき（600px以下）: メニューを極小化して全て収まるようにする --- */
+  @media (max-width: 600px) {
+    header {
+      flex-wrap: wrap;                  /* 狭いときは折り返し可 */
+      height: auto;                     /* 高さ可変にする */
+      padding: 4px 6px;
+      gap: 4px;
+    }
+    header .title {
+      font-size: 12px;
+      max-width: 100%;
+      text-align: center;
+    }
+    .toolbar {
+      flex-wrap: wrap;                  /* ツールバーも折り返し可 */
+      gap: 2px;
+      justify-content: center;
+    }
+    .toolbar button,
+    .toolbar label {
+      padding: 2px 4px;
+      font-size: 11px;
+      border-radius: 6px;
+    }
+    .toolbar input[type="number"],
+    .toolbar select {
+      width: 3.5em;
+      font-size: 11px;
+      padding: 2px 4px;
+    }
+  }
   h2{ margin:.2em 0 .6em; font-size: 20px; }
   pre{ white-space: pre-wrap; word-wrap: break-word; font: 17px/2 "YuMincho", "BIZ UD明朝", serif; margin:0; }
   nav.pages{ display:flex; gap:8px; flex-wrap:wrap; }
@@ -761,8 +793,9 @@ function buildReaderHTML(novel){
     stopAutoScroll();
     if(!autoScrollChk.checked) return;
     let lastTs = null;
-    const SPEED = 80; // px/sec
+    const SPEED = 10 * parseInt(rateInput.value); // px/sec
     function tick(ts){
+if (window.matchMedia('(max-width: 800px)').matches) {
       if(!autoReading || !window.speechSynthesis || !window.speechSynthesis.speaking){
         autoScrollRAF = null;
         return;
@@ -773,6 +806,7 @@ function buildReaderHTML(novel){
       }
       lastTs = ts;
       autoScrollRAF = requestAnimationFrame(tick);
+}
     }
     autoScrollRAF = requestAnimationFrame(tick);
   }
