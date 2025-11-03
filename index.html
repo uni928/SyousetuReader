@@ -795,7 +795,8 @@ function buildReaderHTML(novel){
     let lastTs = null;
     const SPEED = 10 * parseInt(rateInput.value); // px/sec
     function tick(ts){
-if (window.matchMedia('(max-width: 800px)').matches) {
+//if (window.matchMedia('(max-width: 800px)').matches) {
+if(false){
       if(!autoReading || !window.speechSynthesis || !window.speechSynthesis.speaking){
         autoScrollRAF = null;
         return;
