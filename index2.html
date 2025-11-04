@@ -491,7 +491,7 @@ el.editor.addEventListener('paste', async (e) => {
   e.preventDefault();
 
   const lines = text.split(/\r?\n/);
-  let slashIndex = lines.findIndex(l => 0 < l.length && 0 <= l.indexOf('/'));console.log(slashIndex);
+  let slashIndex = lines.findIndex(l => 0 < l.length && l.indexOf('作者') < 0 && 0 <= l.indexOf('/'));console.log(slashIndex);
   if (slashIndex < 0 || slashIndex + 2 >= lines.length) return;
 
   // タイトル: 「/」の次の行
@@ -1205,6 +1205,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
