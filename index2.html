@@ -545,6 +545,7 @@ el.importJSON.addEventListener('change', async (e)=>{
     else{ alert('JSON形式が不正です。') }
   }catch(err){ alert('読み込みに失敗しました: '+err.message) }
   finally{ e.target.value = '' }
+  queueSave();
 })
 
 // ============================
@@ -569,14 +570,7 @@ function buildReaderHTML(novel){
 
 
 
-  return `
-
-
-
-
-
-
-<!doctype html><html lang="ja"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>${escapeHTML(novel.title)} | 閲覧</title>
   <style>
   :root{ --bg:#0b0f14; --paper:#0f1620; --ink:#e9f1ff; --muted:#9fb3c8; --accent:#6ea8fe; --radius:18px; }
@@ -1169,16 +1163,7 @@ if(false){
     }
   })();
   </[[script]]script>
-  </body></html>
-
-
-
-
-
-
-
-
-`.replace("/[[script]]", "/");
+  </body></html>`.replace("/[[script]]", "/");
 }
 
 // 初期表示
