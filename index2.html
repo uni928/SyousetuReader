@@ -515,7 +515,7 @@ el.editor.addEventListener('paste', async (e) => {
   // UIへ反映
   document.getElementById('currentPageTitle').value = title;
   el.editor.value = body;
-  renderPages();
+  renderPages(); queueSave();
 });
 
 el.editor.addEventListener('input', ()=>{
@@ -1205,6 +1205,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
