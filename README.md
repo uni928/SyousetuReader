@@ -4,7 +4,7 @@
 
 自動ではありません。小説をコピーして貼り付ける作業が必要なので、作業量は膨大化と思います。
 
-[# SyousetuReaderr リアルタイムセーブ版](https://uni928.github.io/SyousetuReader/)
+[# SyousetuReaderr リアルタイムセーブ版](https://uni928.github.io/SyousetuReader/index2.html)
 
 リアルタイムセーブがあるバージョンです。
 
