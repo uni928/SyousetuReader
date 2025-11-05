@@ -889,7 +889,7 @@ if(false){
     const headerH = header ? header.getBoundingClientRect().height : 0;
     const rect = el.getBoundingClientRect();
     const targetY = window.scrollY + rect.top - ((window.innerHeight - rect.height) / 2) - (headerH / 2);
-    //window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
   }
   function highlightLineByChar(charIndex){
     const idx = lineIndexFromChar(charIndex);
@@ -1015,7 +1015,7 @@ if(false){
       b.setAttribute('aria-current', (b.dataset.num == String(current)) ? 'page' : 'false');
     }
     showReader();
-    //window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     saveProgress(current);
 
     if(autoReading || opts.keepAuto){
@@ -1069,7 +1069,7 @@ if(false){
   function showTOC(){
     toc.classList.remove('hidden');
     viewPage.classList.add('hidden');
-    //window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function showReader(){
     viewPage.classList.remove('hidden');
@@ -1168,6 +1168,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
