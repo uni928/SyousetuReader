@@ -201,6 +201,7 @@
             <button class="btn good" id="applyTitle">小説名を適用</button>
             <button class="btn" id="clearText">本文クリア</button>
             <button class="btn ghost" id="insertTemplate">テンプレ挿入</button>
+            <button class="btn ghost" id="kaiseki">解析</button>
           </div>
           <textarea id="editor" class="textarea" placeholder="ここに本文を貼り付け・編集…（Markdownも可） 自分で投稿した小説家になろう作品ならば、ページ全体を Ctrl + A → Ctrl + C でコピーして、ここに貼り付けると楽ができる可能性があります。（PCのみ）"></textarea>
         </div>
@@ -316,6 +317,7 @@ const el = {
   applyTitle: document.getElementById('applyTitle'),
   clearText: document.getElementById('clearText'),
   insertTemplate: document.getElementById('insertTemplate'),
+  kaiseki: document.getElementById('kaiseki'),
 }
 
 function renderAll(){ ensureSelection(); renderNovelChips(); renderPages(); renderEditorPane(); }
@@ -545,6 +547,40 @@ el.insertTemplate.onclick = ()=>{
   const tpl = `# 見出し\n\n本文をここに。\n\n- 箇条書き\n- 箇条書き\n\n―― *飾り罫* ――`;
   const n = getSelectedNovel(); if(!n) return; const p = getPage(n, Model.selectedPageNumber); if(!p) return;
   p.text = (p.text? p.text+"\n\n" : '') + tpl; renderAll(); queueSave();
+}
+
+el.kaiseki.onclick = ()=> {
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+
+  if (!text.includes('小説家になろう')) return; // 該当しないなら通常動作
+  e.preventDefault();
+
+  const lines = text.split(/\r?\n/);
+  let slashIndex = lines.findIndex(l => 0 < l.length && l.indexOf('作者') < 0 && 0 <= l.indexOf('/'));console.log(slashIndex);
+  if (slashIndex < 0 || slashIndex + 2 >= lines.length) return;
+
+  // タイトル: 「/」の次の行
+  const title = lines[slashIndex + 1].trim();
+
+  // 本文: タイトルの次の行〜「評価をするにはログインしてください」直前まで
+  const endIndex = lines.findIndex((l, i) => i > slashIndex + 1 && l.includes('評価をするにはログインしてください'));
+  const body = lines
+    .slice(slashIndex + 2, endIndex > 0 ? endIndex : undefined)
+    .join('\n')
+    .trim();
+
+  // ページタイトルと本文に反映
+  const n = getSelectedNovel();
+  if (!n) return;
+  const p = getPage(n, Model.selectedPageNumber);
+  if (!p) return;
+  p.title = title;
+  p.text = body;
+
+  // UIへ反映
+  document.getElementById('currentPageTitle').value = title;
+  el.editor.value = body;
+  renderPages(); queueSave();
 }
 
 // ============================
@@ -1205,6 +1241,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
