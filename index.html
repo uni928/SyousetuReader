@@ -201,6 +201,7 @@
             <button class="btn good" id="applyTitle">小説名を適用</button>
             <button class="btn" id="clearText">本文クリア</button>
             <button class="btn ghost" id="insertTemplate">テンプレ挿入</button>
+            <button class="btn ghost" id="addPage2">＋ ページを追加</button>
           </div>
           <textarea id="editor" class="textarea" placeholder="ここに本文を貼り付け・編集…（Markdownも可）  自分で投稿した小説家になろう作品ならば、ページ全体を Ctrl + A → Ctrl + C でコピーして、ここに貼り付けると楽ができる可能性があります。（PCのみ）"></textarea>
         </div>
@@ -261,6 +262,7 @@ const el = {
 
   pageList: document.getElementById('pageList'),
   addPage: document.getElementById('addPage'),
+  addPage2: document.getElementById('addPage2'),
   duplicatePage: document.getElementById('duplicatePage'),
   swapMode: document.getElementById('swapMode'),
   renumberPages: document.getElementById('renumberPages'),
@@ -392,6 +394,15 @@ el.deleteNovel.onclick = ()=>{
 // イベント: ページリスト
 // ============================
 el.addPage.onclick = ()=>{
+  const n = getSelectedNovel(); if(!n) return;
+  const max = Math.max(0, ...n.pages.map(p=>p.number));
+  const newNum = max + 1;
+  n.pages.push({ number: newNum, title: `${newNum}ページ目`, text: '' });
+  Model.selectedPageNumber = newNum;
+  renderAll();
+}
+
+el.addPage2.onclick = ()=>{
   const n = getSelectedNovel(); if(!n) return;
   const max = Math.max(0, ...n.pages.map(p=>p.number));
   const newNum = max + 1;
@@ -1157,6 +1168,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
