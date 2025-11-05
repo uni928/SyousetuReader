@@ -980,7 +980,7 @@ if(false){
     const u = new SpeechSynthesisUtterance(textCache.slice(startFrom));
     u.lang = 'ja-JP';
     const r = parseFloat(rateInput.value || '1') || 1;
-    u.rate = Math.min(2, Math.max(0.5, r));
+    u.rate = Math.min(100, Math.max(0.5, r));
     u.onstart = function(){
       ttsPause.disabled = false;
       ttsStop.disabled = false;
@@ -989,23 +989,41 @@ if(false){
       requestWakeLock();
     };
     u.onend = function(){
-      ttsPause.disabled = true;
-      ttsStop.disabled = true;
-      ttsToggle.textContent = '▶ 自動読み上げ';
-      stopAutoScroll();
-      releaseWakeLock();
-      // ページ終了時は次回開始位置を先頭に戻す
-      saveTTSOffset(current, 0);
-      if(autoReading){
-        const maxPage = Math.max.apply(null, Data.pages.map(function(pp){ return pp.number; }));
-        if(current < maxPage){
-          setPage(current + 1, { keepAuto:true });
-          speakPage({ fromStart:true });
-        }else{
-          autoReading = false;
-        }
-      }
-    };
+  // UIリセット
+  ttsPause.disabled = true;
+  ttsStop.disabled = true;
+  ttsToggle.textContent = '▶ 自動読み上げ';
+  stopAutoScroll();
+  releaseWakeLock();
+
+  // 次回再開位置は常に先頭からにする（現在ページ）
+  lastCharIndexAbs = 0;
+  currentBaseOffset = 0;
+  saveTTSOffset(current, 0);
+
+  if (autoReading) {
+    const maxPage = Math.max.apply(null, Data.pages.map(function(pp){ return pp.number; }));
+    if (current < maxPage) {
+      const next = current + 1;
+
+      // 念のため次ページの再開位置も先頭に初期化
+      saveTTSOffset(next, 0);
+
+      // 次ページへ進めてから、先頭行をハイライト → 読み上げ開始
+      setPage(next, { keepAuto:true });
+      requestAnimationFrame(function(){
+        highlightLineByChar(0);      // 先頭に自動範囲選択
+        speakPage({ fromStart:true }); // 必ず先頭から読み上げ
+      });
+    } else {
+      autoReading = false;
+    }
+  } else {
+    // 自動読み上げ継続でない場合も、先頭にハイライトだけ合わせる
+    requestAnimationFrame(function(){ highlightLineByChar(0); });
+  }
+};
+
     u.onboundary = function(e){
       if(e && (e.name === 'word' || typeof e.charIndex === 'number')){
         const abs = (e.charIndex || 0) + currentBaseOffset;
@@ -1216,16 +1234,3 @@ renderAll();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
