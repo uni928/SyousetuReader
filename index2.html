@@ -962,84 +962,120 @@ if(false){
     }
   }
 
-  async function speakPage(opts){
-if(!opts) opts = {};
-stopTTS(true);
-const p = Data.pages.find(function(x){ return x.number===current; });
-if(!p) return;
-textCache = p.text || '';
+async function speakPage(opts){
+  if(!opts) opts = {};
+  stopTTS(true);
 
-// 再開位置  
-const startFrom = opts.fromStart ? 0 : await loadTTSOffset(current);  
-currentBaseOffset = startFrom;  
-lastCharIndexAbs = startFrom;  
+  const p = Data.pages.find(function(x){ return x.number===current; });
+  if(!p) return;
+  textCache = p.text || '';
 
-splitIntoLines(textCache);  
+  // 再開位置
+  const startFrom = opts.fromStart ? 0 : await loadTTSOffset(current);
+  currentBaseOffset = startFrom;
+  lastCharIndexAbs = startFrom;
 
-if(!('speechSynthesis' in window)){ console.warn('speechSynthesis未対応'); return; }  
-const u = new SpeechSynthesisUtterance(textCache.slice(startFrom));  
-u.lang = 'ja-JP';  
-const r = parseFloat(rateInput.value || '1') || 1;  
-u.rate = Math.min(100, Math.max(0.5, r));  
-u.onstart = function(){  
-  ttsPause.disabled = false;  
-  ttsStop.disabled = false;  
-  ttsToggle.textContent = '⏹ 自動読み上げ中';  
-  startAutoScroll();  
-  requestWakeLock();  
-};
+  splitIntoLines(textCache);
 
-u.onend = function(){
-// UIリセット
-ttsPause.disabled = true;
-ttsStop.disabled = true;
-ttsToggle.textContent = '▶ 自動読み上げ';
-stopAutoScroll();
-releaseWakeLock();
+  if(!('speechSynthesis' in window)){ console.warn('speechSynthesis未対応'); return; }
 
-// 次回再開位置は常に先頭からにする（現在ページ）
-lastCharIndexAbs = 0;
-currentBaseOffset = 0;
-saveTTSOffset(current, 0);
+  // ▼ 200文字を超えた位置から「次の行末」までをこのチャンクとして読む
+  (function(){
+    var L = textCache.length;
+    var minLen = 200;
+    var probe = startFrom + minLen;
+    var chunkEnd = L;
 
-if (autoReading) {
-const maxPage = Math.max.apply(null, Data.pages.map(function(pp){ return pp.number; }));
-if (current < maxPage) {
-const next = current + 1;
+    if (probe < L) {
+      var nl = textCache.indexOf('\n', probe);
+      if (nl !== -1) {
+        chunkEnd = nl + 1; // 行末（改行含む）まで
+      } else {
+        // 改行がない場合：句読点近辺を探す（全角含む）
+        var tailEnd = Math.min(L, probe + 80);
+        var tail = textCache.slice(probe, tailEnd);
+        var punctRe = /[。．！？!?]/;
+        var m = tail.search(punctRe);
+        chunkEnd = (m !== -1) ? Math.min(L, probe + m + 1) : tailEnd;
+      }
+    }
+    // このチャンクのテキストに差し替え
+    const chunkText = textCache.slice(startFrom, chunkEnd);
+    u = new SpeechSynthesisUtterance(chunkText);
 
-// 念のため次ページの再開位置も先頭に初期化  
-  saveTTSOffset(next, 0);  
+    // 後続で参照できるようにプロパティへ格納
+    u.__chunkEnd = chunkEnd;
+  })();
 
-  // 次ページへ進めてから、先頭行をハイライト → 読み上げ開始  
-  setPage(next, { keepAuto:true });  
-  requestAnimationFrame(function(){  
-    highlightLineByChar(0);      // 先頭に自動範囲選択  
-    speakPage({ fromStart:true }); // 必ず先頭から読み上げ  
-  });  
-} else {  
-  autoReading = false;  
-}
+  u.lang = 'ja-JP';
+  const r = parseFloat(rateInput.value || '1') || 1;
+  u.rate = Math.min(100, Math.max(0.5, r));
 
-} else {
-// 自動読み上げ継続でない場合も、先頭にハイライトだけ合わせる
-requestAnimationFrame(function(){ highlightLineByChar(0); });
-}
-};
-u.onboundary = function(e){
-if(e && (e.name === 'word' || typeof e.charIndex === 'number')){
-const abs = (e.charIndex || 0) + currentBaseOffset;
-lastCharIndexAbs = abs;
-highlightLineByChar(abs);
-const now = performance.now();
-if(now >= ttsSaveNextAt){
-saveTTSOffset(current, abs);
-ttsSaveNextAt = now + 500;
-}
-}
-};
-currentUtterance = u;
-window.speechSynthesis.speak(u);
+  u.onstart = function(){
+    ttsPause.disabled = false;
+    ttsStop.disabled = false;
+    ttsToggle.textContent = '⏹ 自動読み上げ中';
+    startAutoScroll();
+    requestWakeLock();
+  };
+
+  u.onend = function(){
+    // このチャンクの終了位置を保存（次回はここから）
+    const chunkEnd = (typeof u.__chunkEnd === 'number') ? u.__chunkEnd : textCache.length;
+    lastCharIndexAbs = chunkEnd;
+    currentBaseOffset = chunkEnd;
+    saveTTSOffset(current, chunkEnd);
+
+    // UIリセット
+    ttsPause.disabled = true;
+    ttsStop.disabled = true;
+    ttsToggle.textContent = '▶ 自動読み上げ';
+    stopAutoScroll();
+    releaseWakeLock();
+
+    if (autoReading) {
+      // 同一ページに未読が残っていれば続けて読む
+      if (chunkEnd < textCache.length) {
+        speakPage({ fromStart:false });
+        return;
+      }
+      // ページを読み切ったら次ページへ（先頭から）
+      const maxPage = Math.max.apply(null, Data.pages.map(function(pp){ return pp.number; }));
+      if (current < maxPage) {
+        const next = current + 1;
+        saveTTSOffset(next, 0);
+        setPage(next, { keepAuto:true });
+        requestAnimationFrame(function(){
+          highlightLineByChar(0);
+          speakPage({ fromStart:true });
+        });
+      } else {
+        autoReading = false;
+        saveTTSOffset(current, 0);
+      }
+    } else {
+      // 自動読み上げ継続でない場合も、先頭にハイライトだけ合わせる
+      requestAnimationFrame(function(){ highlightLineByChar(0); });
+    }
+  };
+
+  u.onboundary = function(e){
+    if(e && (e.name === 'word' || typeof e.charIndex === 'number')){
+      const abs = (e.charIndex || 0) + currentBaseOffset;
+      lastCharIndexAbs = abs;
+      highlightLineByChar(abs);
+      const now = performance.now();
+      if(now >= ttsSaveNextAt){
+        saveTTSOffset(current, abs);
+        ttsSaveNextAt = now + 500;
+      }
+    }
+  };
+
+  currentUtterance = u;
+  window.speechSynthesis.speak(u);
   }
+
   function pauseTTS(){
     if(window.speechSynthesis && window.speechSynthesis.speaking && !window.speechSynthesis.paused){
       window.speechSynthesis.pause();
@@ -1234,6 +1270,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
