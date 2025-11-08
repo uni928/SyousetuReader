@@ -905,26 +905,38 @@ if(false){
     }
   }
 
-// 200文字を超えた「次の行末」までを1チャンクとして読み込む
-function nextChunkEndAtLine(text, start, min = 200) {
-  if (!text || typeof text !== "string") return 0; // 安全対策
-  const L = text.length;
-  if (start >= L) return L;
+// 200文字を超えた「次の行末」までを1チャンクとして読み込む（安全版）
+function nextChunkEndAtLine(text, start, min){
+  try {
+    // 入力の正規化
+    var src = (text == null) ? '' : String(text);
+    var s = Number(start);
+    if (!isFinite(s) || s < 0) s = 0;
+    var m = Number(min);
+    if (!isFinite(m) || m <= 0) m = 200;
 
-  const probe = start + min;
-  if (probe >= L) return L;
+    var L = src.length;
+    if (s >= L) return L;
 
-  // 200文字以降で最初の改行位置（行末）を探す
-  const nl = text.indexOf('\n', probe);
-  if (nl !== -1) return nl + 1; // 改行も含めて次チャンク先頭を自然に
+    var probe = s + m;
+    if (probe >= L) return L;
 
-  // 改行がない場合は句読点近辺を探す
-  const tail = text.slice(probe, Math.min(L, probe + 80));
-  const m = tail.search(/[。．！？!?]/);
-  if (m !== -1) return Math.min(L, probe + m + 1);
+    // 200文字以降で最初の改行位置（行末）を探す
+    var nl = src.indexOf('\n', probe);
+    if (nl !== -1) return nl + 1; // 改行も含めて次チャンクへ
 
-  // 句読点もない場合は強制的に少し先で切る
-  return Math.min(L, probe + 80);
+    // 改行がない場合は句読点近辺を探す
+    var tailEnd = Math.min(L, probe + 80);
+    var tail = src.slice(probe, tailEnd);
+    var puncIdx = tail.search(/[。．！？!?]/);
+    if (puncIdx !== -1) return Math.min(L, probe + puncIdx + 1);
+
+    // 句読点もない場合は強制的に少し先で切る
+    return tailEnd;
+  } catch (e) {
+    // 何かしら想定外のエラー時は末尾を返す（落ちないことを優先）
+    return (typeof text === 'string') ? text.length : 0;
+  }
   }
   
 async function speakPage(opts){
@@ -1209,6 +1221,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
