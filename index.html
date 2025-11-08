@@ -1005,7 +1005,7 @@ async function speakPage(opts){
   if(!('speechSynthesis' in window)){ return; }
 
 
-
+try { highlightLineByChar(0); } catch(_e){}
     
 
   // 最初の行から開始（または再開位置の属する行から）
@@ -1312,6 +1312,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
