@@ -948,18 +948,76 @@ if(false){
     const targetY = window.scrollY + rect.top - ((window.innerHeight - rect.height) / 2) - (headerH / 2);
     window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
   }
+
   function highlightLineByChar(charIndex){
-    const idx = lineIndexFromChar(charIndex);
-    if(idx === lastHighlightedLine) return;
-    lastHighlightedLine = idx;
-    const nodes = pre.querySelectorAll('.line');
-    for(var i=0;i<nodes.length;i++){ nodes[i].classList.remove('current'); }
-    const n = nodes[idx];
-    if(!n) return;
-    n.classList.add('current');
-    if(autoScrollChk.checked){
-      centerOnElement(n);
+  // 行インデックス算出
+  var idx = lineIndexFromChar(charIndex);
+  if (idx === lastHighlightedLine) return;
+  lastHighlightedLine = idx;
+
+  // ハイライト付け替え
+  var nodes = pre.querySelectorAll('.line');
+  for (var i = 0; i < nodes.length; i++) nodes[i].classList.remove('current');
+  var n = nodes[idx];
+  if (!n) return;
+  n.classList.add('current');
+
+  // 自動スクロール無効なら終了
+  if (!autoScrollChk || !autoScrollChk.checked) return;
+
+  // ヘッダー分のオフセットを考慮して中央に寄せる
+  var header = document.querySelector('header');
+  var headerH = header ? header.getBoundingClientRect().height : 0;
+
+  // スクロール対象（モバイル互換）
+  var se = document.scrollingElement || document.documentElement || document.body;
+
+  // 目的位置を計算
+  var rect = n.getBoundingClientRect();
+  var targetY = (se.scrollTop + rect.top) - Math.max(0, (window.innerHeight - rect.height) / 2) - (headerH / 2);
+  if (targetY < 0) targetY = 0;
+
+  // まずはネイティブのスムーススクロールを試す（未対応なら例外→手動補間）
+  try {
+    if (typeof se.scrollTo === 'function') {
+      se.scrollTo({ top: targetY, behavior: 'smooth' });
+    } else {
+      throw new Error('no scrollTo');
     }
+  } catch (_e) {
+    // 手動アニメーション（Android WebView等のフォールバック）
+    var start = se.scrollTop;
+    var dist = targetY - start;
+    var startTs = null;
+    function step(ts){
+      if (startTs === null) startTs = ts;
+      var t = (ts - startTs) / 250; // 250ms
+      if (t > 1) t = 1;
+      // easeInOutQuad
+      var e = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
+      se.scrollTop = start + dist * e;
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // Android系でスムースが無視される場合の再調整（少し後にもう一度中央へ）
+  setTimeout(function(){
+    if (!autoScrollChk || !autoScrollChk.checked) return;
+    var r2 = n.getBoundingClientRect();
+    // まだ中央から大きく外れていれば scrollIntoView を併用
+    if (Math.abs(r2.top - (window.innerHeight / 2)) > 48) {
+      try {
+        if (n.scrollIntoView) {
+          // オプション未対応環境もあるので二段構え
+          try { n.scrollIntoView({ block: 'center', behavior: 'auto' }); }
+          catch(__e){ n.scrollIntoView(); }
+          // ヘッダー分だけ微調整
+          se.scrollTop = (se.scrollTop || 0) - (headerH / 2);
+        }
+      } catch(__e2){}
+    }
+  }, 120);
   }
 
 async function speakPage(opts){
@@ -1287,6 +1345,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
