@@ -994,67 +994,6 @@ async function speakPage(opts){
 
   if(!('speechSynthesis' in window)){ console.warn('speechSynthesis未対応'); return; }
 
-  // ▼ 200文字超えた行末までを読み上げ単位にする
-  const chunkEnd = nextChunkEndAtLine(textCache, startFrom, 200);
-  const chunkText = textCache.slice(startFrom, chunkEnd);
-
-  const u = new SpeechSynthesisUtterance(chunkText);
-  u.lang = 'ja-JP';
-  const r = parseFloat(rateInput.value || '1') || 1;
-  u.rate = Math.min(2, Math.max(0.5, r));
-
-  u.onstart = function(){
-    ttsPause.disabled = false;
-    ttsStop.disabled = false;
-    ttsToggle.textContent = '⏹ 自動読み上げ中';
-    startAutoScroll();
-    requestWakeLock();
-  };
-
-  u.onend = function(){
-    lastCharIndexAbs = chunkEnd;
-    currentBaseOffset = chunkEnd;
-    saveTTSOffset(current, chunkEnd);
-
-    ttsPause.disabled = true;
-    ttsStop.disabled = true;
-    ttsToggle.textContent = '▶ 自動読み上げ';
-    stopAutoScroll();
-    releaseWakeLock();
-
-    if(autoReading){
-      if(chunkEnd < textCache.length){
-        speakPage({ fromStart:false });
-        return;
-      }
-      const maxPage = Math.max(...Data.pages.map(pp => pp.number));
-      if(current < maxPage){
-        setPage(current + 1, { keepAuto:true });
-        saveTTSOffset(current, 0);
-        highlightLineByChar(0);
-        speakPage({ fromStart:true });
-        return;
-      }
-      autoReading = false;
-      saveTTSOffset(current, 0);
-    }
-  };
-async function speakPage(opts){
-  if(!opts) opts = {};
-  stopTTS(true);
-  const p = Data.pages.find(x => x.number === current);
-  if(!p) return;
-  textCache = p.text || '';
-
-  // 再開位置
-  const startFrom = opts.fromStart ? 0 : await loadTTSOffset(current);
-  currentBaseOffset = startFrom;
-  lastCharIndexAbs = startFrom;
-
-  splitIntoLines(textCache);
-
-  if(!('speechSynthesis' in window)){ console.warn('speechSynthesis未対応'); return; }
-
   // ▼ 200文字を超えた行末までを1チャンクとして読み込む
   const minLen = 200;
   const L = textCache.length;
@@ -1334,6 +1273,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
