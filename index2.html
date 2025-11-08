@@ -989,15 +989,7 @@ if(false){
     var start = se.scrollTop;
     var dist = targetY - start;
     var startTs = null;
-    function step(ts){
-      if (startTs === null) startTs = ts;
-      var t = (ts - startTs) / 250; // 250ms
-      if (t > 1) t = 1;
-      // easeInOutQuad
-      var e = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
-      se.scrollTop = start + dist * e;
-      if (t < 1) requestAnimationFrame(step);
-    }
+
     requestAnimationFrame(step);
   }
 
@@ -1019,7 +1011,15 @@ if(false){
     }
   }, 120);
   }
-
+    function step(ts){
+      if (startTs === null) startTs = ts;
+      var t = (ts - startTs) / 250; // 250ms
+      if (t > 1) t = 1;
+      // easeInOutQuad
+      var e = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
+      se.scrollTop = start + dist * e;
+      if (t < 1) requestAnimationFrame(step);
+  }
 async function speakPage(opts){
   if(!opts) opts = {};
   stopTTS(true);
@@ -1345,6 +1345,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
