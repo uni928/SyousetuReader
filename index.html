@@ -891,20 +891,94 @@ if(false){
     const targetY = window.scrollY + rect.top - ((window.innerHeight - rect.height) / 2) - (headerH / 2);
     window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
   }
-  function highlightLineByChar(charIndex){
-    const idx = lineIndexFromChar(charIndex);
-    if(idx === lastHighlightedLine) return;
-    lastHighlightedLine = idx;
-    const nodes = pre.querySelectorAll('.line');
-    for(var i=0;i<nodes.length;i++){ nodes[i].classList.remove('current'); }
-    const n = nodes[idx];
-    if(!n) return;
-    n.classList.add('current');
-    if(autoScrollChk.checked){
-      centerOnElement(n);
+
+function highlightLineByChar(charIndex){
+  // 行インデックス算出
+  var idx = lineIndexFromChar(charIndex);
+  if (idx === lastHighlightedLine) return;
+  lastHighlightedLine = idx;
+
+  // ハイライト付け替え
+  var nodes = pre.querySelectorAll('.line');
+  for (var i = 0; i < nodes.length; i++) nodes[i].classList.remove('current');
+  var n = nodes[idx];
+  if (!n) return;
+  n.classList.add('current');
+
+  
+
+  // すぐに一度選択（スクロール前）
+  selectNodeContents(n);
+
+  // ========= 自動スクロール（スマホ対応フォールバック付き） =========
+  if (autoScrollChk && autoScrollChk.checked){
+    var header = document.querySelector('header');
+    var headerH = header ? header.getBoundingClientRect().height : 0;
+    var se = document.scrollingElement || document.documentElement || document.body;
+
+    var rect = n.getBoundingClientRect();
+    var targetY = (se.scrollTop + rect.top) - Math.max(0, (window.innerHeight - rect.height) / 2) - (headerH / 2);
+    if (targetY < 0) targetY = 0;
+
+    var usedNative = false;
+    try {
+      if (typeof se.scrollTo === 'function') {
+        se.scrollTo({ top: targetY, behavior: 'smooth' });
+        usedNative = true;
+      }
+    } catch(_e){}
+
+    if (!usedNative){
+      // 手動アニメーション（Android WebView 等）
+      var start = se.scrollTop;
+      var dist  = targetY - start;
+      var startTs = null;
+      
+      requestAnimationFrame(step);
     }
+
+    // スクロール後にもう一度選択（モバイルで選択が外れる対策）
+    setTimeout(function(){
+      selectNodeContents(n);
+      // さらに中央寄せがズレていたら scrollIntoView を最後の手段で
+      var r2 = n.getBoundingClientRect();
+      if (Math.abs(r2.top - (window.innerHeight / 2)) > 48) {
+        try {
+          if (n.scrollIntoView) {
+            try { n.scrollIntoView({ block: 'center', behavior: 'auto' }); }
+            catch(__e){ n.scrollIntoView(); }
+            se.scrollTop = (se.scrollTop || 0) - (headerH / 2);
+          }
+        } catch(__e2){}
+        // 再度選択を強制
+        setTimeout(function(){ selectNodeContents(n); }, 30);
+      }
+    }, 120);
+  }
   }
 
+  // ========= 追加：モバイルでも確実に「範囲選択」させる =========
+  function selectNodeContents(el){
+    try{
+      var sel = window.getSelection && window.getSelection();
+      if (!sel) return;
+      var range = document.createRange();
+      // 空行対策：必ずテキストノードを用意
+      if (!el.firstChild) el.appendChild(document.createTextNode(' '));
+      range.selectNodeContents(el);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }catch(_e){}
+  }
+
+function step(ts){
+        if (startTs === null) startTs = ts;
+        var t = (ts - startTs) / 250; if (t > 1) t = 1;
+        var e = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t; // easeInOutQuad
+        se.scrollTop = start + dist * e;
+        if (t < 1) requestAnimationFrame(step);
+  }
+  
 async function speakPage(opts){
   if(!opts) opts = {};
   stopTTS(true);
@@ -1017,11 +1091,11 @@ async function speakPage(opts){
       //ttsToggle.textContent = '▶ 自動読み上げ';
       stopAutoScroll();
       releaseWakeLock();
-
+try { highlightLineByChar(end); } catch(_e){}
       if (autoReading){
         playFrom(end); // 同一ページの次の行を読む
       } else {
-        try { highlightLineByChar(0); } catch(_e){}
+        //try { highlightLineByChar(0); } catch(_e){}
       }
     };
 
@@ -1238,6 +1312,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
