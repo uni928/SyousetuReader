@@ -905,8 +905,34 @@ if(false){
     }
   }
 
-// 200文字を超えた「次の行末」までを1チャンクとして読み込む（安全版
-  
+// 200文字を超えた位置から「次の行末」までを1チャンクとする（安全・ES5記法）
+function nextChunkEndAtLine(text, start, min) {
+  var src = (text == null) ? '' : String(text);
+  var s = Number(start);
+  if (!isFinite(s) || s < 0) s = 0;
+  var m = Number(min);
+  if (!isFinite(m) || m <= 0) m = 200;
+
+  var L = src.length;
+  if (s >= L) return L;
+
+  var probe = s + m;
+  if (probe >= L) return L;
+
+  // 200文字以降で最初の改行を探す
+  var nl = src.indexOf('\n', probe);
+  if (nl !== -1) return nl + 1; // 改行も含めて次チャンクへ
+
+  // 改行が無い場合：句読点近辺を探す（全角含む）
+  var tailEnd = Math.min(L, probe + 80);
+  var tail = src.slice(probe, tailEnd);
+  var punctRe = new RegExp('[\\u3002\\uFF0E\\uFF01\\uFF1F!?]'); // 。．！？
+  var idx = tail.search(punctRe);
+  if (idx !== -1) return Math.min(L, probe + idx + 1);
+
+  // 見つからなければ強制的に少し先で切る
+  return tailEnd;
+  }
 async function speakPage(opts){
 if(!opts) opts = {};
 stopTTS(true);
@@ -1189,6 +1215,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
