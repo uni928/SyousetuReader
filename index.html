@@ -905,39 +905,7 @@ if(false){
     }
   }
 
-// 200文字を超えた「次の行末」までを1チャンクとして読み込む（安全版）
-function nextChunkEndAtLine(text, start, min){
-  try {
-    // 入力の正規化
-    var src = (text == null) ? '' : String(text);
-    var s = Number(start);
-    if (!isFinite(s) || s < 0) s = 0;
-    var m = Number(min);
-    if (!isFinite(m) || m <= 0) m = 200;
-
-    var L = src.length;
-    if (s >= L) return L;
-
-    var probe = s + m;
-    if (probe >= L) return L;
-
-    // 200文字以降で最初の改行位置（行末）を探す
-    var nl = src.indexOf('\n', probe);
-    if (nl !== -1) return nl + 1; // 改行も含めて次チャンクへ
-
-    // 改行がない場合は句読点近辺を探す
-    var tailEnd = Math.min(L, probe + 80);
-    var tail = src.slice(probe, tailEnd);
-    var puncIdx = tail.search(/[。．！？!?]/);
-    if (puncIdx !== -1) return Math.min(L, probe + puncIdx + 1);
-
-    // 句読点もない場合は強制的に少し先で切る
-    return tailEnd;
-  } catch (e) {
-    // 何かしら想定外のエラー時は末尾を返す（落ちないことを優先）
-    return (typeof text === 'string') ? text.length : 0;
-  }
-  }
+// 200文字を超えた「次の行末」までを1チャンクとして読み込む（安全版
   
 async function speakPage(opts){
 if(!opts) opts = {};
@@ -1221,6 +1189,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
