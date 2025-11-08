@@ -904,22 +904,6 @@ if(false){
       centerOnElement(n);
     }
   }
-// 200文字を超えた「次の行末」までを1チャンクとして読み込む
-  function nextChunkEndAtLine(text, start, min=200){
-    const L = text.length;
-    if (start >= L) return L;
-    const probe = start + min;
-    if (probe >= L) return L;
-    // 200文字以降で最初の改行位置（行末）を探す
-    const nl = text.indexOf('\n', probe);
-    if (nl !== -1) return nl + 1;   // 改行も含めて次チャンク先頭を自然に
-    // 改行が無い長文は文末っぽいところ（句読点）で少し先まで許容
-    const tail = text.slice(probe, Math.min(L, probe + 80));
-    const m = tail.search(/[。．！？!?]/);
-    if (m !== -1) return Math.min(L, probe + m + 1);
-    // それも無ければ強制的に少し先で切る
-    return Math.min(L, probe + 80);
-  }
 
 async function speakPage(opts){
 if(!opts) opts = {};
@@ -1203,6 +1187,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
