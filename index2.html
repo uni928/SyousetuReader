@@ -1058,7 +1058,7 @@ async function speakPage(opts){
 
   if(!('speechSynthesis' in window)){ return; }
 
-
+try { highlightLineByChar(0); } catch(_e){}
 
     
 
@@ -1358,6 +1358,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
