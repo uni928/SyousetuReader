@@ -757,72 +757,6 @@ function buildReaderHTML(novel){
   // =========================
   const Data = ${payload};
 
-  // ▼▼▼ 追加：300 文字超過時、超過「時点の行末」で自動分割（スマホ安定版） ▼▼▼
-  (function enforcePageLengthLimit(){
-    const LIMIT = 300; // 300文字を超えたら、その時点の「行末」で区切る
-    if (!Data || !Array.isArray(Data.pages)) return;
-
-    // 1回だけ分割：改行がない長文でも必ず前進するように設計
-    function splitOnceAtLineAfterLimit(text, limit){
-      const src = String(text || '');
-      if (src.length <= limit) return [src, '']; // 分割不要
-
-      const lines = src.split('\n');
-      let acc = 0;
-      for (let i = 0; i < lines.length; i++){
-        const len = lines[i].length;
-        // 次の行末まで含めたら limit を超えるか？
-        const nextAcc = acc + len + (i < lines.length - 1 ? 1 : 0); // 行末の改行もカウント
-        if (nextAcc > limit){
-          if (i === 0 && lines.length === 1){
-            // 改行が1つも無い長文：limit で強制分割
-            // できれば直前の空白で切る（なければ limit で切る）
-            const chunk = src.slice(0, limit);
-            const lastSpace = chunk.lastIndexOf(' ');
-            const cut = lastSpace >= 200 ? lastSpace : limit; // 極端に前で切れないように閾値
-            return [src.slice(0, cut), src.slice(cut)];
-          }
-          // i 行目の行末で分割（i 行目を first に含める）
-          const first = lines.slice(0, i + 1).join('\n');
-          const rest  = lines.slice(i + 1).join('\n');
-          return [first, rest];
-        }
-        acc = nextAcc;
-      }
-      // 末尾まで到達しても limit を超えない（保険）
-      return [src, ''];
-    }
-
-    const srcPages = Data.pages.slice().sort((a,b)=>a.number-b.number);
-    const out = [];
-    for (const p of srcPages){
-      const baseTitle = p.title || '';
-      let remaining = String(p.text || '');
-      let partIndex = 0;
-
-      // 空ページはそのまま保持
-      if (!remaining.length){
-        out.push({ number: 0, title: baseTitle, text: '' });
-        continue;
-      }
-
-      while (remaining.length){
-        const before = remaining;
-        const [first, rest] = splitOnceAtLineAfterLimit(remaining, LIMIT);
-        const title = partIndex === 0 ? baseTitle :
-                      (baseTitle ? `${baseTitle}（続き）` : '（続き）');
-        out.push({ number: 0, title, text: first });
-        partIndex++;
-        remaining = rest;
-        // 念のため無限ループ防止（何らかの理由で分割が進まない場合）
-        if (remaining === before) break;
-      }
-    }
-    // 連番振り直し
-    out.forEach((pg, i)=> pg.number = i + 1);
-    Data.pages = out;
-  })();
-  // ▲▲▲ 追加ここまで ▲▲▲
   // =========================
   // 要素参照
   // =========================
@@ -1027,8 +961,33 @@ if(false){
       centerOnElement(n);
     }
   }
+  // 200文字を超えた「次の行末」までを1チャンクとして読み込む
+  function nextChunkEndAtLine(text, start, min=200){
+    const L = text.length;
+    if (start >= L) return L;
+    const probe = start + min;
+    if (probe >= L) return L;
+    // 200文字以降で最初の改行位置（行末）を探す
+    const nl = text.indexOf('\n', probe);
+    if (nl !== -1) return nl + 1;   // 改行も含めて次チャンク先頭を自然に
+    // 改行が無い長文は文末っぽいところ（句読点）で少し先まで許容
+    const tail = text.slice(probe, Math.min(L, probe + 80));
+    const m = tail.search(/[。．！？!?]/);
+    if (m !== -1) return Math.min(L, probe + m + 1);
+    // それも無ければ強制的に少し先で切る
+    return Math.min(L, probe + 80);
+  }
 
   async function speakPage(opts){
+         lastCharIndexAbs = abs;
+         highlightLineByChar(abs);
+         const now = performance.now();
+         if(now >= ttsSaveNextAt){
+           saveTTSOffset(current, abs);
+           ttsSaveNextAt = now + 500;
+         }
+       }
+     };
     if(!opts) opts = {};
     stopTTS(true);
     const p = Data.pages.find(function(x){ return x.number===current; });
@@ -1043,7 +1002,11 @@ if(false){
     splitIntoLines(textCache);
 
     if(!('speechSynthesis' in window)){ console.warn('speechSynthesis未対応'); return; }
-    const u = new SpeechSynthesisUtterance(textCache.slice(startFrom));
+    
+    // この呼び出しで読む範囲（200文字超えた行末まで）
+    const chunkEnd = nextChunkEndAtLine(textCache, startFrom, 200);
+    const chunkText = textCache.slice(startFrom, chunkEnd);
+    const u = new SpeechSynthesisUtterance(chunkText);
     u.lang = 'ja-JP';
     const r = parseFloat(rateInput.value || '1') || 1;
     u.rate = Math.min(100, Math.max(0.5, r));
@@ -1300,5 +1263,6 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
