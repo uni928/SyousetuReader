@@ -987,36 +987,7 @@ async function speakPage(opts){
 
   if(!('speechSynthesis' in window)){ return; }
 
-  // 指定オフセットの行末インデックス（改行を含む）を返す
-  function lineEndFromOffset(offset){
-    if (offset >= textCache.length) return textCache.length;
-    var idx = lineIndexFromChar(offset);                 // 既存の関数を利用
-    var end = lineEnds && lineEnds[idx];                 // 累積長（改行も含む）
-    if (typeof end !== 'number') end = textCache.length;
-    return end;
-  }
 
-  // あるオフセットから「その行だけ」読み上げる
-  function playFrom(offset){
-    if (offset >= textCache.length){
-      // ページ末尾 → 次ページへ
-      var maxPage = 1;
-      for (var j = 0; j < Data.pages.length; j++){
-        if (Data.pages[j].number > maxPage) maxPage = Data.pages[j].number;
-      }
-      if (autoReading && current < maxPage){
-        var next = current + 1;
-        saveTTSOffset(next, 0);
-        setPage(next, { keepAuto:true });
-        try { highlightLineByChar(0); } catch(_e){}
-        speakPage({ fromStart:true });
-      } else {
-        autoReading = false;
-        saveTTSOffset(current, 0);
-        try { highlightLineByChar(0); } catch(_e){}
-      }
-      return;
-    }
 
     var end = lineEndFromOffset(offset);
     var chunkText = textCache.slice(offset, end);
@@ -1081,6 +1052,37 @@ async function speakPage(opts){
 
   // 最初の行から開始（または再開位置の属する行から）
   playFrom(startFrom);
+  }
+
+    // 指定オフセットの行末インデックス（改行を含む）を返す
+  function lineEndFromOffset(offset){
+    if (offset >= textCache.length) return textCache.length;
+    var idx = lineIndexFromChar(offset);                 // 既存の関数を利用
+    var end = lineEnds && lineEnds[idx];                 // 累積長（改行も含む）
+    if (typeof end !== 'number') end = textCache.length;
+    return end;
+  }
+
+  // あるオフセットから「その行だけ」読み上げる
+  function playFrom(offset){
+    if (offset >= textCache.length){
+      // ページ末尾 → 次ページへ
+      var maxPage = 1;
+      for (var j = 0; j < Data.pages.length; j++){
+        if (Data.pages[j].number > maxPage) maxPage = Data.pages[j].number;
+      }
+      if (autoReading && current < maxPage){
+        var next = current + 1;
+        saveTTSOffset(next, 0);
+        setPage(next, { keepAuto:true });
+        try { highlightLineByChar(0); } catch(_e){}
+        speakPage({ fromStart:true });
+      } else {
+        autoReading = false;
+        saveTTSOffset(current, 0);
+        try { highlightLineByChar(0); } catch(_e){}
+      }
+      return;
   }
 
   function pauseTTS(){
@@ -1277,6 +1279,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
