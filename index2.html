@@ -756,53 +756,69 @@ function buildReaderHTML(novel){
   // データ
   // =========================
   const Data = ${payload};
- // ▼▼▼ 追加：文字数が多いページを 300 文字超過行の行末で自動分割 ▼▼▼
+
+  // ▼▼▼ 追加：300 文字超過時、超過「時点の行末」で自動分割（スマホ安定版） ▼▼▼
   (function enforcePageLengthLimit(){
-    const LIMIT = 300; // 300文字を超えた時点の「行末」で区切る
+    const LIMIT = 300; // 300文字を超えたら、その時点の「行末」で区切る
     if (!Data || !Array.isArray(Data.pages)) return;
 
-    // 指定文字数を超えた時点の「行末」で分割するヘルパー
+    // 1回だけ分割：改行がない長文でも必ず前進するように設計
     function splitOnceAtLineAfterLimit(text, limit){
-      const lines = String(text || '').split('\n');
+      const src = String(text || '');
+      if (src.length <= limit) return [src, '']; // 分割不要
+
+      const lines = src.split('\n');
       let acc = 0;
       for (let i = 0; i < lines.length; i++){
-        acc += lines[i].length;
-        // 行の終端（改行）もカウントに含める（最終行以外）
-        if (i < lines.length - 1) acc += 1;
-        if (acc > limit){
-          // i 行目までを first（i 行目含む＝その行末で区切る）
+        const len = lines[i].length;
+        // 次の行末まで含めたら limit を超えるか？
+        const nextAcc = acc + len + (i < lines.length - 1 ? 1 : 0); // 行末の改行もカウント
+        if (nextAcc > limit){
+          if (i === 0 && lines.length === 1){
+            // 改行が1つも無い長文：limit で強制分割
+            // できれば直前の空白で切る（なければ limit で切る）
+            const chunk = src.slice(0, limit);
+            const lastSpace = chunk.lastIndexOf(' ');
+            const cut = lastSpace >= 200 ? lastSpace : limit; // 極端に前で切れないように閾値
+            return [src.slice(0, cut), src.slice(cut)];
+          }
+          // i 行目の行末で分割（i 行目を first に含める）
           const first = lines.slice(0, i + 1).join('\n');
           const rest  = lines.slice(i + 1).join('\n');
           return [first, rest];
         }
+        acc = nextAcc;
       }
-      // そもそも超えない場合は全体が first、rest は空
-      return [text, ''];
+      // 末尾まで到達しても limit を超えない（保険）
+      return [src, ''];
     }
 
-    const src = Data.pages.slice().sort((a,b)=>a.number-b.number);
+    const srcPages = Data.pages.slice().sort((a,b)=>a.number-b.number);
     const out = [];
-    let seq = 1;
-    for (const p of src){
+    for (const p of srcPages){
       const baseTitle = p.title || '';
       let remaining = String(p.text || '');
-      // 1チャンク目
-      while (remaining.length){
-        const [first, rest] = splitOnceAtLineAfterLimit(remaining, LIMIT);
-        const isFirst = (first.length === (p.text || '').length);
-        const title = (out.length === 0 || isFirst)
-          ? baseTitle
-          : (baseTitle ? `${baseTitle}（続き）` : '（続き）');
-        out.push({ number: seq++, title, text: first });
-        if (!rest) break;
-        remaining = rest;
+      let partIndex = 0;
+
+      // 空ページはそのまま保持
+      if (!remaining.length){
+        out.push({ number: 0, title: baseTitle, text: '' });
+        continue;
       }
-      // テキストが空の場合も1ページとして保持
-      if ((p.text || '') === ''){
-        out.push({ number: seq++, title: baseTitle, text: '' });
+
+      while (remaining.length){
+        const before = remaining;
+        const [first, rest] = splitOnceAtLineAfterLimit(remaining, LIMIT);
+        const title = partIndex === 0 ? baseTitle :
+                      (baseTitle ? `${baseTitle}（続き）` : '（続き）');
+        out.push({ number: 0, title, text: first });
+        partIndex++;
+        remaining = rest;
+        // 念のため無限ループ防止（何らかの理由で分割が進まない場合）
+        if (remaining === before) break;
       }
     }
-    // 連番を振り直し
+    // 連番振り直し
     out.forEach((pg, i)=> pg.number = i + 1);
     Data.pages = out;
   })();
@@ -1284,4 +1300,5 @@ renderAll();
 </script>
 </body>
 </html>
+
 
