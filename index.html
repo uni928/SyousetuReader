@@ -1095,7 +1095,7 @@ try { highlightLineByChar(end); } catch(_e){}
       if (autoReading){
         playFrom(end); // 同一ページの次の行を読む
       } else {
-        //try { highlightLineByChar(0); } catch(_e){}
+        try { highlightLineByChar(0); } catch(_e){}
       }
     };
 
@@ -1312,6 +1312,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
