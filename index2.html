@@ -1043,7 +1043,7 @@ async function speakPage(opts){
     u.onstart = function(){
       ttsPause.disabled = false;
       ttsStop.disabled  = false;
-      ttsToggle.textContent = '⏹ 自動読み上げ中';
+      //ttsToggle.textContent = '⏹ 自動読み上げ中';
       startAutoScroll();
       requestWakeLock();
     };
@@ -1071,7 +1071,7 @@ async function speakPage(opts){
 
       ttsPause.disabled = true;
       ttsStop.disabled  = true;
-      ttsToggle.textContent = '▶ 自動読み上げ';
+      //ttsToggle.textContent = '▶ 自動読み上げ';
       stopAutoScroll();
       releaseWakeLock();
 
@@ -1128,6 +1128,13 @@ async function speakPage(opts){
     h.textContent = (p.title ? p.title + ' / ' : '') + p.number + ' ページ目';
     splitIntoLines(p.text || '');
 
+ 
+    // ▼ ページが変わったら読み上げの再開位置を必ず先頭に
+    lastCharIndexAbs = 0;
+    currentBaseOffset = 0;
+    saveTTSOffset(current, 0);
+
+
     pageNum.value = current;
     renderList();
     const btns = document.querySelectorAll('nav.pages button');
@@ -1141,7 +1148,7 @@ async function speakPage(opts){
 
     if(autoReading || opts.keepAuto){
       autoReading = true;
-      speakPage({ fromStart:false });
+      speakPage({ fromStart:true });
     }
   }
 
@@ -1280,6 +1287,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
