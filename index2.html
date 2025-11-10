@@ -741,8 +741,14 @@ function buildReaderHTML(novel){
     </main>
 
     <!-- 目次 -->
-    <section id="toc" class="paper hidden" aria-label="目次">
+  <section id="toc" class="paper hidden" aria-label="目次">
       <h2 style="margin-top:0">目次</h2>
+      <div class="muted" style="margin:6px 0 10px">
+        読み上げの声：
+        <select id="voiceSelect">
+          <option value="">（ブラウザ既定）</option>
+        </select>
+      </div>
       <nav id="tocList"></nav>
     </section>
 
@@ -775,6 +781,7 @@ function buildReaderHTML(novel){
   const ttsStop = document.getElementById('ttsStop');
   const rateInput = document.getElementById('rate');
   const autoScrollChk = document.getElementById('autoScroll');
+  const voiceSelect = document.getElementById('voiceSelect');
 
   // =========================
   // IndexedDB
@@ -858,6 +865,98 @@ function buildReaderHTML(novel){
       db.close();
       return (val && typeof val.value === 'number') ? val.value : null;
     }catch(e){ return null; }
+  }
+
+  // 音声選択の保存/読込
+  async function saveVoice(name){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_PREFS, 'readwrite');
+      tx.objectStore(STORE_PREFS).put({ key: 'tts_voice', value: String(name||''), updatedAt: Date.now() });
+      tx.oncomplete = function(){ db.close(); };
+    }catch(e){}
+  }
+  async function loadVoice(){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_PREFS, 'readonly');
+      const req = tx.objectStore(STORE_PREFS).get('tts_voice');
+      const val = await new Promise(function(res){ req.onsuccess=function(){ res(req.result); }; req.onerror=function(){ res(null); }; });
+      db.close();
+      return (val && typeof val.value === 'string') ? val.value : '';
+    }catch(e){ return ''; }
+  }
+
+  // =========================
+  // 音声（Voice）選択
+  // =========================
+  let voices = [];
+  let selectedVoiceName = '';
+
+  function populateVoiceSelect(){
+    if(!voiceSelect) return;
+    // 現在の選択を保持
+    const keep = selectedVoiceName || voiceSelect.value || '';
+    // いったん全削除
+    while(voiceSelect.firstChild){ voiceSelect.removeChild(voiceSelect.firstChild); }
+    // 既定
+    const opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = '（ブラウザ既定）';
+    voiceSelect.appendChild(opt0);
+    // 日本語優先で並べ、その後その他
+    const ja = voices.filter(v=> (v.lang||'').toLowerCase().startsWith('ja'));
+    const other = voices.filter(v=> !(v.lang||'').toLowerCase().startsWith('ja'));
+    function addOpts(arr){
+      for(var i=0;i<arr.length;i++){
+        const o = document.createElement('option');
+        o.value = arr[i].name;
+        o.textContent = arr[i].name + (arr[i].lang ? ' / ' + arr[i].lang : '');
+        voiceSelect.appendChild(o);
+      }
+    }
+    if(ja.length){
+      const g = document.createElement('optgroup'); g.label = '日本語';
+      voiceSelect.appendChild(g);
+      for(var i=0;i<ja.length;i++){
+        const o = document.createElement('option');
+        o.value = ja[i].name;
+        o.textContent = ja[i].name + (ja[i].lang ? ' / ' + ja[i].lang : '');
+        g.appendChild(o);
+      }
+    }
+    if(other.length){
+      const g2 = document.createElement('optgroup'); g2.label = 'その他';
+      voiceSelect.appendChild(g2);
+      for(var j=0;j<other.length;j++){
+        const o2 = document.createElement('option');
+       o2.value = other[j].name;
+       o2.textContent = other[j].name + (other[j].lang ? ' / ' + other[j].lang : '');
+       g2.appendChild(o2);
+     }
+    }
+    // 選択復元
+    voiceSelect.value = keep;
+    selectedVoiceName = voiceSelect.value;
+  }
+
+  function refreshVoices(){
+    try{
+      voices = window.speechSynthesis ? (window.speechSynthesis.getVoices() || []) : [];
+      populateVoiceSelect();
+    }catch(e){}
+  }
+
+  if('speechSynthesis' in window){
+    // 一部ブラウザは非同期でvoicesが届く
+    window.speechSynthesis.onvoiceschanged = refreshVoices;
+  }
+
+  if(voiceSelect){
+    voiceSelect.addEventListener('change', function(){
+      selectedVoiceName = voiceSelect.value || '';
+      saveVoice(selectedVoiceName);
+    });
   }
 
   // =========================
@@ -1110,7 +1209,19 @@ try { highlightLineByChar(0); } catch(_e){}
     var r = parseFloat(rateInput && rateInput.value ? rateInput.value : '1');
     if (!isFinite(r)) r = 1;
     u.rate = Math.min(100, Math.max(0.5, r));
-
+    // 選択済みの声があれば適用（なければ日本語系、なければ既定）
+   try{
+      if(voices && voices.length){
+        var v = null;
+        if(selectedVoiceName){
+          for(var i=0;i<voices.length;i++){ if(voices[i].name === selectedVoiceName){ v = voices[i]; break; } }
+        }
+        if(!v){
+          for(var j=0;j<voices.length;j++){ if((voices[j].lang||'').toLowerCase().startsWith('ja')){ v = voices[j]; break; } }
+        }
+        if(v) u.voice = v;
+      }
+    }catch(e){}
     u.onstart = function(){
       ttsPause.disabled = false;
       ttsStop.disabled  = false;
@@ -1241,8 +1352,10 @@ try { highlightLineByChar(end); } catch(_e){}
     // 目次（コンパクト・前2〜後4のみ）
     tocList.innerHTML = '';
     var idxCur = pagesSorted.findIndex(function(p){ return p.number === current; });
-    var start = Math.max(0, idxCur - 2);
-    var end = Math.min(pagesSorted.length, start + 7); // 前2 + 自身 + 後4 = 最大7件
+    //var start = Math.max(0, idxCur - 2);
+    //var end = Math.min(pagesSorted.length, start + 7); // 前2 + 自身 + 後4 = 最大7件
+    var start = 0;
+    var end = pagesSorted.length;
     const visiblePages = pagesSorted.slice(start, end);
     for(var j=0;j<visiblePages.length;j++){
       (function(p){
@@ -1341,6 +1454,11 @@ try { highlightLineByChar(end); } catch(_e){}
     if(savedRate && !Number.isNaN(savedRate)){
       rateInput.value = String(savedRate);
     }
+    // 音声選択を復元してから一覧を描画
+    try{
+      selectedVoiceName = await loadVoice();
+    }catch(e){ selectedVoiceName = ''; }
+    refreshVoices(); // onvoiceschanged でも後から再度更新される
     renderList();
     const saved = await loadProgress();
     if(saved && Data.pages.some(function(p){ return p.number===saved; })){
@@ -1358,29 +1476,5 @@ renderAll();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
