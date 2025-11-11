@@ -496,10 +496,10 @@ el.renumberPages.onclick = ()=>{
 
 el.seikei.onclick = ()=>{
   const text = el.editor.value;
-
+alert(text);
   if (!text.includes('小説家になろう')) return; // 該当しないなら通常動作
   e.preventDefault();
-alert(text);
+
   const lines = text.split(/\r\n|\r|\n/);
   //let slashIndex = lines.findIndex(l => 0 < l.length && l.indexOf('作者') < 0 && 0 <= l.indexOf('/'));console.log(slashIndex);
   //if (slashIndex < 0 || slashIndex + 2 >= lines.length) return;
