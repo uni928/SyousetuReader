@@ -500,7 +500,7 @@ el.seikei.onclick = ()=>{
   if (!text.includes('小説家になろう')) return; // 該当しないなら通常動作
   e.preventDefault();
 
-  const lines = text.split(/\r?\n/);
+  const lines = text.split(/\r\n|\r|\n/);
   //let slashIndex = lines.findIndex(l => 0 < l.length && l.indexOf('作者') < 0 && 0 <= l.indexOf('/'));console.log(slashIndex);
   //if (slashIndex < 0 || slashIndex + 2 >= lines.length) return;
 let slashIndex = 0;
@@ -534,7 +534,7 @@ for(let i = slashIndex + 1; i < lines.length; i++) {
   if (!p) return;
   p.title = title;
   p.text = body;
-  alert(body);
+
   // UIへ反映
   document.getElementById('currentPageTitle').value = title;
   el.editor.value = body.replace("\n\n", "\n");
