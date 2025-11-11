@@ -9,3 +9,9 @@
 リアルタイムセーブがあるバージョンです。
 
 ブラウザが落ちる事でデータが飛ぶのが嫌な方はこちらをお試しください。
+
+[# SyousetuReaderr 出力サンプル](https://uni928.github.io/SyousetuReader/index5.html)
+
+ChatGPTで出力したマインクラフト小説の出力サンプルです。
+
+音声読み上げの快適さなどを体感して下さい。
