@@ -1,0 +1,854 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>マインクラフト小説（小説出力サイトサンプル）（ChatGPT） | 閲覧</title>
+  <style>
+  :root{ --bg:#0b0f14; --paper:#0f1620; --ink:#e9f1ff; --muted:#9fb3c8; --accent:#6ea8fe; --radius:18px; }
+  @media (prefers-color-scheme: light){ :root{ --bg:#eef3fb; --paper:#ffffff; --ink:#0c1b2a; --muted:#4e657b; --accent:#2f73ff; } }
+  *{box-sizing:border-box}
+  body{ margin:0; background:radial-gradient(1000px 600px at 10% -10%, color-mix(in oklab, var(--accent) 10%, transparent), transparent), var(--bg); color:var(--ink); font: 16px/1.9 "BIZ UD明朝", "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif; }
+  .wrap{ max-width:900px; margin: 24px auto; padding: 0 16px 40px; }
+  header{
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: color-mix(in oklab, var(--paper) 80%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid color-mix(in oklab, var(--muted) 25%, transparent);
+    max-width: 1920px;
+    margin: 0 auto;
+    border-radius: 0 0 12px 12px;
+    padding: 8px 12px;
+    height: 60px;
+    overflow: hidden;
+  }
+  header .title{ font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .paper{ background: var(--paper); border-radius: var(--radius); padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+  .muted{ color:var(--muted) }
+  .grid{ display:grid; grid-template-columns: 1fr; }
+  .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:nowrap; overflow:hidden; }
+  .toolbar button, .toolbar label{
+    padding:4px 6px;                /* コンパクト化 */
+    border-radius:8px;
+    font-size:13px;                 /* 文字を小さく */
+    border:1px solid color-mix(in oklab, var(--muted) 25%, transparent);
+    background:transparent;
+    color:inherit;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .toolbar input[type="number"], .toolbar select{
+    padding:4px 6px;                /* 入力欄も小さめ */
+    border-radius:8px;
+    font-size:13px;
+    border:1px solid color-mix(in oklab, var(--muted) 25%, transparent);
+    background:transparent;
+    color:inherit;
+    text-align:center;
+    width:4.5em;                    /* 幅を短く */
+  }
+  .toolbar{ gap:4px; }              /* 要素間の隙間を縮小 */
+  header .title{ font-size:14px; }  /* タイトルもやや小さく */
+
+  /* --- 画面が狭いとき（600px以下）: メニューを極小化して全て収まるようにする --- */
+  @media (max-width: 600px) {
+    header {
+      flex-wrap: wrap;                  /* 狭いときは折り返し可 */
+      height: auto;                     /* 高さ可変にする */
+      padding: 4px 6px;
+      gap: 4px;
+    }
+    header .title {
+      font-size: 12px;
+      max-width: 100%;
+      text-align: center;
+    }
+    .toolbar {
+      flex-wrap: wrap;                  /* ツールバーも折り返し可 */
+      gap: 2px;
+      justify-content: center;
+    }
+    .toolbar button,
+    .toolbar label {
+      padding: 2px 4px;
+      font-size: 11px;
+      border-radius: 6px;
+    }
+    .toolbar input[type="number"],
+    .toolbar select {
+      width: 3.5em;
+      font-size: 11px;
+      padding: 2px 4px;
+    }
+  }
+  h2{ margin:.2em 0 .6em; font-size: 20px; }
+  pre{ white-space: pre-wrap; word-wrap: break-word; font: 17px/2 "YuMincho", "BIZ UD明朝", serif; margin:0; }
+  nav.pages{ display:flex; gap:8px; flex-wrap:wrap; }
+  nav.pages button{ padding:6px 10px; border-radius:999px; border:1px solid color-mix(in oklab, var(--muted) 25%, transparent); background:transparent; color:inherit; cursor:pointer; }
+  nav.pages button[aria-current="page"]{ background: color-mix(in oklab, var(--accent) 25%, transparent); }
+  #tocList{ display:grid; grid-template-columns: 1fr; gap:8px; }
+  .toc-item{ display:flex; gap:10px; align-items:baseline; padding:6px 8px; border-radius:8px; border:1px solid color-mix(in oklab, var(--muted) 20%, transparent); background: color-mix(in oklab, var(--paper) 85%, transparent); cursor:pointer; font-size:14px; line-height:1.4; }
+  .toc-num{ font-weight:800; min-width:6em; color:var(--muted); font-size:13px; }
+  .toc-title{ font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hidden{ display:none; }
+  .backtoc{ margin-top:12px; }
+  /* 読み上げハイライト */
+  .line{ display:inline; }
+  .line.current{ background: color-mix(in oklab, var(--accent) 25%, transparent); border-radius: 6px; }
+  </style></head>
+  <body><div class="wrap">
+    <header class="paper">
+      <div class="toolbar">
+        <button id="btnToc">目次</button>
+        <button id="prev">←</button>
+        <input id="pageNum" type="number" min="1" />
+        <button id="next">→</button>
+        <button id="ttsToggle">▶ 自動読み上げ</button>
+        <button id="ttsPause" disabled>⏸ 一時停止</button>
+        <button id="ttsStop" disabled>■ 停止</button>
+        <label>速度 <input id="rate" type="number" min="0.5" max="2" step="0.1" value="1.0"></label>
+        <label><input id="autoScroll" type="checkbox" checked> 自動スクロール</label>
+      </div>
+    </header>
+
+    <!-- 読書ビュー -->
+    <main id="viewPage" class="paper">
+      <h2 id="h"></h2>
+      <pre id="content"></pre>
+      <div class="backtoc">
+        <button id="backToToc">目次に戻る</button>
+      </div>
+    </main>
+
+    <!-- 目次 -->
+  <section id="toc" class="paper hidden" aria-label="目次">
+      <h2 style="margin-top:0">目次</h2>
+      <div class="muted" style="margin:6px 0 10px">
+        読み上げの声：
+        <select id="voiceSelect">
+          <option value="">（ブラウザ既定）</option>
+        </select>
+      </div>
+      <nav id="tocList"></nav>
+    </section>
+
+    <section class="paper" style="margin-top:12px">
+      <div class="muted" style="margin-bottom:6px">ページ一覧</div>
+      <nav class="pages" id="plist"></nav>
+    </section>
+  </div>
+  <script>
+  // =========================
+  // データ
+  // =========================
+  const Data = {"title":"マインクラフト小説（小説出力サイトサンプル）（ChatGPT）","pages":[{"number":1,"title":"第1話：土の手触り","text":"第1話：土の手触り\n\n目を覚ました瞬間、世界が静まり返っていた。\n風も音も、何もない。ただ、遠くで木の葉が揺れるような微かなざわめきが聞こえる気がした。\n\n「……どこだ、ここ……？」\n\n俺はゆっくりと身を起こした。\n周囲には見渡す限りの草原。四角く、妙に整った地面が果てしなく続いている。空は澄みきった青で、太陽はまるで絵に描いたようにくっきりと浮かんでいた。\nあまりに現実離れした光景に、頭が混乱する。\n\n夢か、何かのVRか？\nそう思いながら立ち上がると、足元の草がざくっと四角く潰れる。まるで何かの「ブロック」を踏みつけたような感覚。\n\n「おかしい……手の感触が、硬い……」\n\n無意識のうちにしゃがみ込み、地面を叩いた。\nカンッ、カンッ、カンッ……！\nまるでゲームの中のような、軽い衝撃音が響く。だが、その音には妙な心地よさがあった。\nやけにリズミカルで、叩くたびにほんの少しずつ土の表面が「ひび割れていく」。\n\n「……な、何だこれ？」\n\n焦りと好奇心が入り混じり、気づけば手が止まらなかった。\n無我夢中で地面を叩き続けると、突然——\n\nポンッ！\n\n乾いた音とともに、目の前の土の一部が四角く浮き上がり、ぽとりと地面に落ちた。\nその瞬間、俺は息を呑んだ。\n\n「……ブロック？　土の……ブロック？」\n\n手を伸ばすと、それは自然に吸い込まれるように俺の体の中に——いや、視界のどこか「インベントリ」に収納されたような感覚が走った。\nまるで、頭の中に“1個の土”というデータが加わったかのように、はっきりと理解できる。\n\n「まさか……」\n\nゆっくりと空を見上げる。\n太陽は四角い。雲も四角い。\n風の動きさえもブロック単位で切り取られているように、すべてが規則的で、完璧に整っていた。\n\n「これ……マインクラフト、じゃないのか……？」\n\n心臓が跳ねた。\nあり得ない。ゲームの世界にいるなんて、そんなこと……。\nだが、目の前の景色は、俺が何百時間もプレイしてきたあの世界そのものだった。\n木は四角い葉をまとい、地平線の向こうには立方体の山々。遠くで羊のような生き物が“メェ”と鳴く声が響く。\n\n「……嘘だろ……」\n\n手のひらを見つめると、そこには俺の現実の手があった。\nだが、叩いた土も、拾ったブロックも、すべて“マインクラフト”の法則で動いている。\n現実感と非現実感が交錯して、目の前の世界がぐにゃりと歪んだ気がした。\n\n「帰れるのか？　……いや、ここが本当にゲームの中なら、どうやって？」\n\n怖さが胸の奥から湧き上がる。\nだが、それ以上に、好奇心が勝った。\n俺は立ち上がり、あたりを見渡す。\n\n木がある。\n叩けば、きっと……。\n\n震える手で、俺は近くの木の幹を叩いた。\nコツッ……カンッ……カンッ……。\n土のときと同じリズム。ひびが広がっていく。\nそして、再び“ポンッ”という音。\n\n木のブロックが、宙に浮かんだ。\n\n俺はそれを拾い上げた。\n手の中に広がる温もりは確かに「現実」だった。\n木の香りがほんのり漂う。\nそして、胸の奥で確信が芽生えた。\n\n——ここは、本当にマインクラフトの世界だ。\n\nけれども、なぜ俺がここに来たのか。どうすれば帰れるのか。\n何もわからないまま、太陽は静かに空を登っていく。\n\n「とりあえず……夜になる前に、何か作らないと。」\n\n呟きながら、俺はもう一度拳を握った。\n叩くたびに、ブロックが音を立てて壊れる。\n土が、木が、俺の手に集まっていく。\nそして、確かに——「生き延びる」という現実が、ゲームの中にあった。\n\nこうして、俺の“マインクラフト生活”が始まった。"},{"number":2,"title":"第2話：初めての夜","text":"\n太陽がゆっくりと傾き始めていた。\n長い影が伸び、草原の緑がオレンジ色に染まる。\nさっきまで現実味がなかったこの世界が、夕焼けとともに一気に“生きている”ように感じられた。\n\n「やばい……夜になったら、モンスターが出る。」\n\n俺は慌てて辺りを見回した。\n記憶の中のマインクラフトでは、夜になるとゾンビやスケルトンが現れ、プレイヤーを襲う。\n“ゲーム”の中なら死んでもリスポーンすればいい。\nだが——ここでは、死んだらどうなるんだ？\n\n考えるだけで背筋が冷たくなった。\nとにかく、身を守る何かを作らなければ。\n\n■ 木の道具を作る\n\n昼間に拾った木のブロックを取り出そうとした瞬間、頭の中に自然と“クラフト画面”のような映像が浮かんだ。\n何も見えていないのに、どこかで「四角いグリッド」と「アイテムスロット」を感じ取れる。\n本能的に、木のブロックを“加工”するイメージを思い浮かべると——\n\nポンッ！\n\n手の中に「木材」が現れた。\nさらに4枚の木材を組み合わせると、「作業台」が完成する。\n\n「うわ……本当にできた。」\n\n恐る恐る地面に置いてみる。\n作業台が“コトン”と音を立てて設置され、ほんのりと温かい光を放った気がした。\nその上で木材をさらに加工してみると、木の棒、木のツルハシ、木のシャベル……\n頭で思い浮かべるだけで、どんどん形になっていく。\n\n「これはもう……チュートリアルなんていらないな。」\n\nそれでも、現実のように手が疲れる。\nツルハシを持つと重みを感じ、地面を掘るたびに汗がにじむ。\n五感がすべて連動しているのが怖いほどリアルだった。\n\n■ 初めての拠点づくり\n\n日が沈みかけている。\n急いで地面を掘り、土ブロックを積み上げて、四角い“箱”を作る。\n屋根を閉じると、ようやくほっと一息つけた。\n中は暗いが、安全な気がした。\n\n「……ここが、俺の拠点か。」\n\n狭い。汚い。けれど、妙に心地いい。\nゲームの中では何百回も作った、最初の土の小屋。\nそれが今、現実の避難所として機能していることに、なんとも言えない感慨があった。\n\n外から、遠くで“ヒュンッ”という不穏な音が聞こえた。\n続いて“ポンッ”と弓の弦を弾くような音。\n\n「……スケルトンか。」\n\n窓の隙間から、遠くに白い影が見えた。\n夜空の下、月明かりに照らされた四角い姿。\nピクセル状の骨が、ゆっくりとこちらを向く。\n\nゾッとした。\nその瞬間、心臓の鼓動が速くなる。\n足音、風の音、どれもがやけに生々しい。\nゲームの“サウンドエフェクト”ではなく、現実の音として耳に届く。\n\n「これ、完全に……生きてる。」\n\n俺は作業台の上で松明を作ろうとしたが、石炭がない。\n暗闇が濃くなり、呼吸が浅くなる。\n\n「クソッ……どうすれば……」\n\n焦っていたその時、ふと思い出す。\n昔プレイしたとき、木を焼けば“木炭”ができた。\nそうだ、かまどを作れば——\nでも、石がない。ツルハシは木製。時間がない。\n\n「……夜を越えるしかないな。」\n\n俺は地面にしゃがみ込み、手にしたツルハシを抱えた。\n外の音を聞かないように、耳を塞ぎ、ただじっと息を潜める。\n遠くで“ウー……”というゾンビのうめき声。\n“カサカサ……”とクモの足音。\nそして時折、スケルトンの矢が壁を打つ音。\n\n——生き延びろ。朝までは、それだけを考えろ。\n\nやがて、目の前の闇が少しずつ明るくなっていく。\n鳥の鳴き声が戻り、草原が金色に染まり始める。\n夜が明けたのだ。\n\n「……生きてる。」\n\n安堵とともに、力が抜けた。\n俺は初めての夜を越えた。\nそして、この世界が“ただの夢ではない”ことを、改めて思い知らされた。\n\n「よし……次は、石を掘りに行くか。」\n\n新しい朝。\n俺のサバイバル生活は、ようやく“始まった”のだった。"},{"number":3,"title":"第3話：石の下の闇","text":"\n朝の光が差し込む。\nあの地獄のような夜を越え、俺は小屋の扉を少しだけ開けた。\n冷たい朝の風が頬を撫で、遠くでニワトリの鳴き声が響く。\nまるで「生き残ったな」と祝福してくれているようだった。\n\n「……これが“朝焼け”の安心感か。」\n\nたった一晩で、自分の中の“生存本能”がまるで別人のように働くようになっていた。\n外に出る前に深呼吸し、周囲を確認する。ゾンビの燃えかすが数体、地面に黒く焦げた残骸を残している。\n現実ではありえない光景なのに、なぜか見慣れ始めている自分が怖い。\n\n「さて……次は石だ。」\n\n木のツルハシを握り、地面を掘り始める。\nやがて土の層の下に、灰色のブロックが見えた。\nコンコン、と叩くと低い音が響く。\nそれは確かに、石だった。\n\n「……やっと来たか。」\n\nゲームでは何度も見た“最初の進化”。\nけれど、今回は手のひらにずっしりとした重みを感じる。\nツルハシを振るたび、肩がきしみ、汗が流れる。\n筋肉が疲労し、呼吸が荒くなる。\n——現実の身体で掘るマインクラフト。これほど過酷だとは思わなかった。\n\n石をいくつか集め、外に戻ると、手際よくかまどを作った。\n拾った丸太を燃料にして、木を焼く。\nすると、淡いオレンジの炎が立ちのぼり、ほのかに温かい光が漏れ出した。\n\n「……あったけぇ。」\n\n松明を作り、手に灯りを持つと、暗闇が少しだけ遠のく。\nその瞬間、なぜか胸の奥がじんとした。\n——ここでは、光は「安心」そのものだ。\n\n■ 地下への入り口\n\n腹が減ってきた。\n持ち物には、拾った生の羊肉が一つ。\n焼いて食べるしかない。\nかまどに入れて火を通すと、香ばしい匂いが漂った。\n口にすると、味は意外にも“本物”だった。\nゲームの中で「空腹ゲージ」を満たすために食べていたあの肉が、現実では温かく、柔らかい。\n\n食後、少しだけ気持ちに余裕ができた。\n拠点の裏手に、小さな洞窟のような影があるのに気づく。\n暗く、奥は見えない。\nだが、そこには鉄や石炭が眠っているかもしれない。\n\n「……行くしかないか。」\n\n松明を片手に、俺は慎重に足を踏み入れた。\nカチッ、カチッと靴音が反響し、壁の苔が光を吸い込むように鈍く輝く。\n数歩進むごとに、周囲が暗くなっていく。\n\nそのとき——\n\n“カサ……カサカサカサ……”\n\n何かの音がした。\n近い。\n明らかに生き物の気配。\n俺は反射的にツルハシを構えた。\n\n「……誰だ？」\n\n暗闇の奥から、ゆっくりと何かが這い出てくる。\n細長い脚、赤く光る目。\nクモ——いや、“スパイダー”だ。\n\n「うわ、来たっ！」\n\n現実で見ると、ゲームの比じゃないほど不気味だった。\n毛の一本一本がリアルで、足音がぞわりと肌を這う。\nそれでも、逃げたら終わる。\n俺は叫びながら、ツルハシを振り下ろした。\n\nガンッ！　ガンッ！　ガンッ！\n\n鈍い衝撃が腕に返ってくる。\nスパイダーの体が潰れ、緑色の液体を飛び散らせながら倒れた。\n息が荒くなる。\n鼓動が爆発しそうなほど速い。\n\n「……勝った……のか。」\n\n倒れたスパイダーが煙のように消え、代わりに糸が残った。\nそれを拾い上げると、体の中に再び“吸い込まれる”感覚。\nインベントリに追加されたのだ。\n\n俺は膝をつき、震える手で額の汗を拭った。\nたった一匹の敵を倒しただけなのに、命を削ったような感覚だった。\n\n「……これが、“戦う”ってことか。」\n\nそして同時に、理解した。\n——この世界では、恐怖も、痛みも、現実と変わらない。\nでも、だからこそ、“生きている実感”もある。\n\n俺は松明を新しく一本立て、奥を照らした。\nそこには、銀色に光る鉱石が埋まっていた。\n鉄鉱石だ。\n\n「よし……進化の時だ。」\n\n恐怖を押し殺し、俺はツルハシを振るった。\n一撃ごとに、火花のような光が洞窟に散る。\n暗闇の奥へ、奥へ。\nその先に何があるのかも知らずに。\n\nこうして、俺は地上を離れ、\n**マインクラフトの“地下世界”**へと足を踏み入れたのだった。"},{"number":4,"title":"第4話：闇の奥の光","text":"\n洞窟の奥は、まるで別世界だった。\n一歩進むごとに温度が下がり、湿った空気が肌にまとわりつく。\n松明の炎が小さく揺れるたび、壁に刻まれたブロックの影が歪み、\nそれがまるで生き物のように蠢いて見えた。\n\n「……鉄鉱石、あと三つ……いや、四つか。」\n\n拾った石のツルハシで叩くと、カンッと澄んだ音が響いた。\nやがてブロックが砕け、鉄鉱石がぽとりと落ちる。\nそれを拾い上げるたび、胸の奥に小さな達成感が灯る。\n現実の手応えがあるぶん、ゲームよりもずっと重い達成感だ。\n\nだが、安堵したのも束の間だった。\n\n背後で“ポタ……ポタ……”と何かが滴る音がした。\n振り返ると、洞窟の壁の向こうで、薄緑の光がゆらゆらと揺れている。\n不穏な気配。\n音を殺しながら、ゆっくりと松明を掲げた。\n\n「……やっぱりか。」\n\nそれは“クリーパー”だった。\n無表情の四角い顔、足音もなく近づいてくるその姿に、全身の毛が逆立つ。\nゲームでは見慣れたはずの敵なのに、\n現実で見ると、まるで生物兵器のような緊迫感があった。\n\n「来るな、来るな、来るなっ！」\n\nツルハシを構えたが、意味はない。\n奴は、爆発する。\n逃げるしかない。\n\n俺は全力で走った。\n松明の灯が次々と遠ざかり、足元の石が滑る。\n背後でクリーパーの“シュー……”という音が大きくなる。\n\nそして——\n\nドンッ！！\n\n世界が白くはじけた。\n土煙が舞い上がり、耳鳴りが止まらない。\n体が何メートルも吹き飛び、壁に叩きつけられた。\n\n「っ……ぐ……！」\n\n痛みが走る。だが、死んではいない。\n幸運にも岩陰が爆風を防いでくれたらしい。\n震える手で立ち上がると、視界の端に“穴”が見えた。\n爆発で壁の一部が崩れ、奥へと続く空間が現れている。\n\n「……道、か？」\n\n恐る恐る覗くと、その奥には不思議な光が差し込んでいた。\n柔らかく、青白い輝き。\n火ではない。\nそれは——鉱石だった。\n\n「ラピスラズリ……いや、違う。これ……グロウストーンか？」\n\n洞窟の天井に、ひと塊の光る鉱石が張り付いていた。\nまるで夜空の星が地中に閉じ込められたように輝いている。\n\nその光を見た瞬間、\n俺の中で恐怖よりも好奇心が勝った。\n\n「……行こう。」\n\n松明を手に、崩れた岩の隙間をくぐる。\nそこには、思いもよらない光景が広がっていた。\n\n——大空洞。\n\n天井は高く、壁には無数の鉱石が光り、\n中央には地下水が流れ、小さな滝が音を立てて落ちている。\n幻想的だった。\nまるで、この世界そのものが息をしているようだった。\n\n「……すげぇ……」\n\n呆然と立ち尽くす俺の足元で、水滴が跳ねる。\n何もかもがブロックでできているのに、\nなぜか“自然の美しさ”が失われていない。\nこの世界は、ただのゲームじゃない。\nもっと“生きたもの”だ。\n\nそのとき、俺の背後でカランッと音がした。\n振り返ると、通ってきた通路が半分ほど崩れかけていた。\n爆発の衝撃で、天井がゆっくりと沈み始めている。\n\n「……まずい！」\n\n急いで走り寄り、外に戻ろうとした瞬間、\nドドドッ……と土砂が崩れ落ち、出口が完全に塞がれた。\n\n暗闇。\n閉じ込められた。\n\n「……うそだろ……」\n\n松明の光だけが頼り。\n周囲は静まり返り、水音だけが響く。\n\nけれど、不思議と恐怖はなかった。\n俺の胸の奥では、違う感情が生まれていた。\n\n——この先には、何かがある。\n\nそれを確信するように、洞窟の奥から微かな低音が響いた。\nまるで鼓動のような、\n**「ドン……ドン……」**という音。\n\n「……誰か、いるのか？」\n\nその声に応えるように、\n遠くの闇の中で、二つの紫の光がゆらめいた。\n\nそれは、エンダーマンの瞳だった。\n\n俺は息を呑み、ツルハシを握り直す。\n地上を離れ、未知の世界へ踏み出した俺の旅は、\nこの瞬間から“本当のサバイバル”へと変わろうとしていた。\n\n——第4話、続く。"},{"number":5,"title":"第5話：エンダーマンの視線","text":"\n静寂。\n空気が重く、息をする音さえ響く。\n闇の奥、二つの紫の光がじっとこちらを見つめていた。\n\n「……エンダーマン……」\n\nその名を口にした瞬間、背筋に冷たい電流が走った。\nあのゲームの中で、何度も恐れた存在。\n視線を合わせたら、襲ってくる。\nだが、ここはゲームではない。\n“本物の”世界だ。\nもし本当に襲われたら、俺は……死ぬ。\n\n——いや、ここで怯えても何も始まらない。\n\n俺は息を整え、視線を逸らす。\n見ない。決して、目を合わせない。\n視界の端に黒い影がゆらめき、少しずつ距離を詰めてくる。\n長い腕。細い体。異様なほど静かな足音。\n一歩、また一歩。\nそして、すぐ近くに来た。\n\n“ウゥゥゥ……”\n\n低い、唸るような音が耳を震わせる。\nその声に、心臓が跳ねた。\nけれど、まだ俺は目を上げない。\n見たら終わりだ。\n\nしばらくして、ふっと気配が遠のいた。\n風が止み、再び静けさが戻る。\n\n「……行った、のか？」\n\n恐る恐る顔を上げると、\n洞窟の中央——さっきまで何もなかった場所に、\nひとつの“草ブロック”が置かれていた。\n\n「え……？」\n\nエンダーマンが持っていたのだろう。\n彼らは時々、ブロックを拾って運ぶ。\n——けれど、その草の上には、\n青く光る“花”が一輪、咲いていた。\n\n見たこともない花だった。\nブロック状の世界ではあり得ない、滑らかな花弁。\nまるで現実世界の植物のように、\n風もないのにかすかに揺れている。\n\n「……なんだ、これ。」\n\n近づくと、心の奥にざわめきが広がった。\n懐かしいような、悲しいような——そんな感覚。\n花の中心から、微かな光が漂い出し、\nそれが俺の体の周囲を包み込んだ。\n\n一瞬で、視界が白く染まる。\n\n——何かが、流れ込んできた。\n\n風の音。木のざわめき。\nそして、誰かの声。\n\n『——必ず、生き延びて。\n　“ここ”は、世界をつなぐ鍵だから。』\n\nその声は、はっきりと“人間の言葉”だった。\n優しく、けれど切実な響きを持っている。\n\n白い光が消えると、俺は元の洞窟に立っていた。\n花は跡形もなく消え、代わりに\n地面に“エンダーパール”が転がっていた。\n\n「……これを、残していったのか？」\n\n拾い上げた瞬間、掌に温もりが広がった。\nただのアイテムではない。\n何かの意思が宿っている。そう感じた。\n\n——あの声。\n——あの花。\n\nここに来たのは、偶然なんかじゃないのかもしれない。\n\n俺はエンダーパールを胸にしまい、\n洞窟の奥を見つめた。\nまだ未知の闇が続いている。\nけれど、不思議と怖くなかった。\n\n「……進もう。」\n\nエンダーマンが残した“何か”を確かめるために。\nそして、あの声の正体を探るために。\n\n松明の灯を掲げ、再び歩き出す。\n岩の壁を照らす光が、少しずつ遠ざかっていく。\n闇の中、俺の足音だけが響いていた。\n\n——この世界は、生きている。\nそして、俺はその中心にいる。\n\n次回、第6話「闇の村と光の塔」"},{"number":6,"title":"第6話：闇の村と光の塔","text":"\n洞窟を抜けたとき、眩しいほどの光が俺の目を射抜いた。\n目を細めて外へ出ると、そこは地上だった。\nけれど、俺が知っている草原ではない。\n夜の闇が濃く残り、霧のような靄が漂っている。\n月は厚い雲の向こうに隠れ、世界全体が灰色に沈んでいた。\n\n「……ここは、どこだ？」\n\n見上げた先には、暗闇の中でぼんやりと浮かぶ建物の影。\n石と木で作られた家が並び、崩れかけた柵が道沿いに続いている。\n村だ。——けれど、どの家も扉が外れ、窓ガラスが割れている。\nまるで、何かに襲われた後のようだった。\n\n足元の砂利道を踏むたび、音がやけに響く。\n村の中央には井戸があり、その横に誰かの姿が立っていた。\nフードを深くかぶった人影。\n手にはランタンのようなものを持っている。\n\n「……村人、か？」\n\n近づこうとすると、ランタンの灯りがゆらりと揺れ、\nその人物の顔が見えた——\n目は真っ白で、瞳がない。\nそれなのに、確かに俺を見ていた。\n\n「……おまえも、“来た者”か。」\n\nかすれた声。\n言葉が通じる。\n俺は驚きで言葉を失った。\n\n「え……？　あなた、誰なんですか？」\n\nフードの男はゆっくりと首を振った。\n\n「名はもう捨てた。\n　ここに来た者は皆、“生き残ること”だけが名になる。」\n\n風が吹き抜け、家の扉がきしむ音がした。\n男は続けた。\n\n「この村は“境界”。\n　地上と、もう一つの世界の狭間にある場所だ。\n　……そして、あの塔がすべての始まりだ。」\n\n男が指差した先には、遠くの丘にそびえる黒い塔が見えた。\n頂上が雲の中に隠れるほど高く、\nところどころに青い光が脈動している。\n\n「“光の塔”……？」\n\n「名ばかりの光だ。\n　中にあるのは、かつての“創造主”の残響。\n　おまえがそこへ行くなら、戻っては来られぬかもしれん。」\n\n創造主——この世界を作った存在？\nつまり、マインクラフトの“神”……？\n俺の胸の奥で、エンダーマンの声が再び響く。\n\n『——世界をつなぐ鍵。』\n\n「……その塔に、答えがあるんですね。」\n\n男はうなずいた。\nそして、俺の手を見て目を細めた。\n\n「……おまえ、持っているな。“それ”を。」\n\nエンダーパール。\nポケットの中で、わずかに光が漏れていた。\n\n「塔への道を開く鍵だ。\n　だが、気をつけろ。塔の麓には“影の守人”がいる。\n　夜にしか動かぬが、光を憎む。」\n\n俺は拳を握った。\n恐怖よりも、確信が勝っていた。\nこの世界の謎——なぜ俺がここに来たのか、\nなぜ現実ではなく、この“方形の宇宙”に閉じ込められたのか。\nすべては、あの塔にある。\n\n「行きます。」\n\n男はゆっくりと頷き、俺の肩に手を置いた。\nその手は温かくも、どこか透き通っていた。\n\n「ならば……この灯りを持っていけ。」\n\n彼が差し出したのは、小さなランタン。\n中で揺れる炎は普通の火ではなく、青く静かに輝いていた。\n\n「“魂の灯”。\n　これが消えぬ限り、おまえの心も折れぬ。\n　だが、油断するな。塔の闇は生きている。」\n\n受け取った瞬間、ランタンの炎がわずかに脈打つ。\nまるで、心臓の鼓動のように。\n\n俺は振り返り、朽ちた村を後にした。\n遠くの空に、光の塔が青く瞬いている。\n夜風が吹き、ランタンの灯が小さく揺れた。\n\n——その光の先に、何が待つのか。\n——そして、“創造主”とは誰なのか。\n\n答えを求めて、俺は歩き出した。\n\n闇を裂くように、青い炎が道を照らしていた。\n\n次回、第7話「影の守人」。"},{"number":7,"title":"第7話：影の守人","text":"\n丘を登る道は、まるで闇が生きているかのように重たかった。\n青く揺れる「魂の灯」だけが頼り。\nランタンの光が届く範囲は狭く、少し離れると全てが墨のように黒い。\n\n背後で風が唸り、木々がざわめく。\nふと立ち止まると、足元の砂利道がわずかに震えていた。\n\n「……何か、いるな。」\n\n地面の下から伝わる低い振動。\n心臓の鼓動と同じリズムで「ドン……ドン……」と響く。\n洞窟で聞いた音と、同じだ。\n\n塔の影が、月明かりのない空にそびえている。\nその麓——闇の中で、何かが動いた。\n\nカサ……カサササ……\n\n俺は息を止めた。\nランタンを掲げると、光の縁で黒い“腕”のようなものが揺れた。\nそれは土のようで、しかし煙のようにも見える。\n輪郭がはっきりしない。\n\n「……影の守人、か。」\n\nまるで地面から滲み出るように、それは形を成した。\n人型。\nだが顔はなく、胸の奥にだけ光る「赤い点」がある。\nその光が脈動するたび、闇が呼吸するように広がった。\n\n俺はツルハシを握りしめた。\nだが、体が動かない。\n影の守人の視線——いや、存在そのものが、俺を地面に縫いつけている。\n\n「……くそっ……動け！」\n\n魂の灯がかすかに明滅した。\nその光に呼応するように、胸ポケットの中の“エンダーパール”が淡く光る。\nその瞬間、拘束が一瞬だけ緩んだ。\n\n「今だ！」\n\n全力で前に飛び出す。\nツルハシを振りかぶり、影の胸の赤い点に向けて叩きつけた。\n\n——ガンッ！！\n\n鈍い衝撃とともに、赤い光が弾けた。\nだが、影は崩れない。\n代わりに、無数の“腕”が地面から伸びてくる。\n\n「うわっ！」\n\n足を取られ、体が引きずり込まれる。\n土の冷たさが膝を這い上がり、腰、胸、そして首へ。\nこのままでは、闇に飲まれる——！\n\n「……まだだ！」\n\n俺はランタンを高く掲げた。\n魂の灯が一気に燃え上がり、青白い炎が周囲を包み込む。\nその光が影を焼き、地面が鳴動する。\n\n“ギィィィィィィィィィィ——！！！”\n\n耳を裂くような叫び声。\n影の守人がのたうち、やがて灰のように崩れ落ちた。\n残されたのは、黒曜石の欠片のような破片。\n\n息が荒く、手が震える。\nそれでも、俺は立ち上がった。\n\n「……勝った、のか……？」\n\n闇が静まり返り、丘の上に続く道がはっきりと見える。\n塔の周囲には、淡い光の粒が舞っていた。\nそれはまるで、倒した影が残した魂のようだった。\n\n地面に落ちていた欠片を拾うと、\nランタンの炎がふっと明るくなった。\nまるで、その力を吸収したかのように。\n\n——影を越えた者に、道が開かれる。\n\nふと、頭の中で誰かの声がした。\nエンダーマンのものでも、村人のものでもない。\nもっと遠く、もっと深いところから響く声。\n\n「……おまえは、“選ばれし破片”を手にした。\n　次に進むなら、光の塔の扉を開け。」\n\n声が途切れた瞬間、丘の上で雷光が走った。\n塔の入口が、まるで脈打つように光を放つ。\n\n「……あそこだ。」\n\n俺は息を整え、再び歩き出した。\n魂の灯は青く輝き、道を照らしている。\n影の気配はもうない。\n代わりに、塔の中から何かが呼んでいる。\n\n——ようこそ、創造の座へ。\n\n遠くで、鉄の扉がゆっくりと軋む音がした。\n\n次回、第8話「創造主の記録」。"},{"number":8,"title":"第8話：創造主の記録","text":"\n重厚な鉄の扉を押し開けると、そこには静寂が満ちていた。\n塔の内部は、外観からは想像できないほど広い。\n四方の壁はすべて黒曜石でできており、\nその表面には無数の“文字”のような模様が刻まれている。\n\n「……これ、文字か？　いや……コード？」\n\n近づいて目を凝らすと、それはアルファベットや数字のようにも見えた。\nしかし、どの言語にも当てはまらない。\nまるで世界そのものを構成する“プログラム”の断片のようだった。\n\n壁をなぞると、指先に微かな振動が伝わる。\n次の瞬間、模様の一部が淡く光り出した。\n\n——世界の生成ログを検知。\n——プレイヤーID：不明。アクセス権限：暫定管理者。\n\n「……プレイヤーID？　俺のことか？」\n\n頭の中に直接響く声。\nコンピュータのシステムメッセージのような冷たい響きなのに、\nどこか“人間の意志”が混ざっている。\n\n光る模様が動き、壁の一部がスライドして扉のように開いた。\n中には、石造りの階段が上へと続いている。\n\n「……行けってことか。」\n\n息を整え、ゆっくりと階段を登る。\n足音が反響し、塔の内部に重々しい響きを残す。\n\nやがて、階段の先に青白い光が見え始めた。\nその中心に——浮かんでいた。\n\n宙に浮かぶ透明な立方体。\n中では光が螺旋状に回転し、\n時折そこから映像のようなものが浮かび上がる。\n\n「……何だ、これは。」\n\n手を伸ばすと、光の立方体が反応した。\n\n——創造主の記録、起動します。\n\n視界が一瞬で白く染まり、次の瞬間、\n俺は見知らぬ空間に立っていた。\n\n周囲には無限に広がる“白い平面”。\n地面も空もなく、ただ果てのない虚空。\nそして、目の前には一人の男が立っていた。\n\n「……君が、“来た者”か。」\n\n男は白いローブをまとい、\nその瞳は深い光を宿していた。\n年齢はわからない。\n声は穏やかで、どこか懐かしい響きを持っている。\n\n「あなたが……創造主？」\n\n男はゆっくりとうなずいた。\n\n「かつては、そう呼ばれていた。\n　だが今、この世界は私の手を離れた。\n　君がここに来たのは、“修復者”としての呼び声を受けたからだ。」\n\n「修復……者？」\n\n男は手を上げ、空中に光のブロックをいくつも浮かべた。\nそれらは互いに組み合わさり、やがて世界の地形を模した立体を形作る。\n山、海、森、空——すべてが立方体でできたミニチュアの地球のようだった。\n\n「この世界は、もともと“創造と破壊”の均衡で保たれていた。\n　しかし、ある時から“破壊”の側だけが意志を持ち始めた。」\n\n「……影の守人、か。」\n\n男の目が静かに細められる。\n\n「そう。彼らは本来、創造主の意識を守るための防壁だった。\n　だが私が去った後、目的を失い、\n　今では“生きるために世界を壊す存在”となった。」\n\n男は振り返り、光の地形に手をかざす。\nその一部が崩れ、黒い塊がじわじわと広がっていく。\n\n「やがてすべては“闇”に飲まれる。\n　だからこそ、君が必要なんだ。」\n\n「俺が……？」\n\n「君は“観測者”としてこの世界に転移した。\n　本来なら外側から見ているはずの存在が、\n　今は中に入り込んでいる。\n　君の視点が、この世界を再び“描き直す”力になる。」\n\n言葉の意味がすぐには理解できなかった。\nだが、彼の瞳に宿る光だけは真実を告げていた。\n\n「……俺は、世界を修復できるってことか？」\n\n創造主はゆっくりとうなずいた。\n\n「ただし、それは同時に“創造主の席”に座るということ。\n　代償は——記憶だ。」\n\n「記憶？」\n\n「君が現実で生きてきたすべての記憶を失い、\n　ここに“新たな神”として定着する。\n　それが、この世界を救う唯一の方法だ。」\n\n言葉を失った。\n俺の中で、現実の記憶がよみがえる。\n友人の笑い声。家族の姿。\nそして、あの“パソコンの画面”に映っていたマインクラフトのタイトル画面。\n\n「……俺は、現実に帰りたい。でも——」\n\n「この世界にも、命がある。」\n\n創造主の声が静かに響く。\n\n「どちらを選ぶかは、君次第だ。」\n\n光が強くなり、視界が再び白く染まる。\n創造主の姿がゆっくりと霞んでいく。\n\n——選べ。\n——創造か、帰還か。\n\nその言葉を最後に、俺は再び塔の中に戻っていた。\n目の前の光の立方体が脈打つように揺れ、\nまるで俺の答えを待っているように見えた。\n\n「……どうすればいいんだ、俺は。」\n\n青く光るランタンを見つめながら、\n俺は、息を呑んだ。\n\n——次回、第9話「選択の時」。"},{"number":9,"title":"第9話：選択の時","text":"\n光の立方体が鼓動のように脈打っていた。\n塔の内部は静寂に包まれているのに、\nその鼓動だけが、生き物のように響いている。\n\n「創造か……帰還か……」\n\nあの創造主の声が、まだ耳に残っていた。\n“記憶を失って世界を救うか、それとも現実へ帰るか。”\nどちらを選んでも、何かを失う。\nけれど、どちらを選ばなければ、世界そのものが崩壊する。\n\n——どうして俺なんだ。\n\nそう思った瞬間、足元の床が淡く光った。\nブロックの継ぎ目が輝き、光の筋が塔の中央へと集まっていく。\nやがてそれらは一つの「円」を描き、\nまるで“儀式陣”のような模様を浮かび上がらせた。\n\n同時に、胸ポケットの中でエンダーパールが震えた。\n取り出すと、かすかにヒビが入り、\nその隙間から青白い光が漏れ出す。\n\n「……反応してる。」\n\n塔の上空から、低い声が響いた。\n\n『選択の時は訪れた。\n　おまえの意志が、この世界の形を決める。』\n\n見上げると、塔の天井がゆっくりと開き、\n雲の切れ間から星空が見えた。\nしかし、その星空は“現実の夜空”とは違う。\n無数のブロックのような光が、格子状に並び、\nまるで世界そのものがデータで構築されているようだった。\n\n「これが……この世界の“外側”か。」\n\n現実と仮想の境界。\nその狭間に立つ自分の存在が、急に曖昧に感じられた。\n\n——ここで、俺は本当に“生きている”のか？\n——それとも、すでに“別の世界”の中で再構築されたのか？\n\nそんな疑問が浮かんだ瞬間、塔の光が強くなり、\n二つの扉が現れた。\n\n左の扉は、柔らかな光に包まれている。\nその奥からは、懐かしい匂いがした。\n陽だまり、家の中の空気、友人の笑い声。\n——現実。\n\n右の扉は、蒼く輝く炎に照らされていた。\n風のような囁きが聞こえる。\n「助けて」「まだ消えたくない」\nその声は、この世界に生きる人々、モンスター、\nそして大地そのものの声に思えた。\n——創造。\n\n「……どっちを選べって言うんだよ……」\n\n苦笑いを浮かべながら、膝に手をつく。\n息が震え、喉が焼けるように熱い。\nだが、そのとき——\n青いランタンの炎が、静かに俺の足元を照らした。\n\nまるで「焦るな」とでも言うように、穏やかに揺れる。\n\n「……そうだな。」\n\n俺はゆっくりと立ち上がった。\nそして、左手のエンダーパールを掲げる。\nその光が二つの扉を同時に照らした瞬間、\n頭の中に何かが“流れ込んできた”。\n\n──花の記憶。\n──村の男の声。\n──影の守人の苦痛。\n──創造主の孤独。\n\nすべてがつながる。\n彼らは“敵”ではなく、“この世界の一部”だった。\nそして、俺自身もまた、この世界に触れ、形を変えた一部なのだ。\n\n「……そうか。選択するんじゃない。繋ぐんだ。」\n\nエンダーパールを塔の中心の円に置いた。\n瞬間、塔全体がまばゆい光に包まれる。\n二つの扉がひとつに溶け合い、\nまるで世界そのものが再構築されるような振動が走った。\n\n『統合プロトコル、起動——』\n\n耳の奥で、創造主の声が重なる。\nけれど今度は、悲しげではなく、\n微笑むような穏やかさを帯びていた。\n\n「ありがとう、修復者。」\n\n視界が白く染まり、\n風が吹き抜ける。\n\n草の香り。\n鳥の声。\n太陽の温もり。\n\n俺は再び、草原の上に立っていた。\n四角い空。四角い地面。\nけれど、心には確かな“現実”の感覚があった。\n\n遠くの丘には、あの塔が静かに佇んでいる。\nその頂上の光が、ゆっくりと消えていった。\n\n「……俺は、どっちにいるんだろうな。」\n\nふと呟くと、手の中のランタンが小さく灯った。\nその炎は青から白へ、そして透明へと変わり、\n風に溶けて消えた。\n\n——でも確かに、ここに“生きている”。\n\n俺はそう呟き、\n新しい朝の光の中を歩き出した。\n\nこの世界はまだ、創造の途中だ。\nそして、俺もその一部として——\nまた、最初の一歩を踏み出す。\n\n次回（最終話）第10話「新しい世界へ」。"},{"number":10,"title":"第10話：新しい世界へ（最終話）","text":"\n朝の光が世界を包んでいた。\n空は澄みきっていて、雲はまるで柔らかな羊毛のようにゆっくりと流れていく。\n遠くで羊が鳴き、風が草原を撫でる。\nそれは確かに「マインクラフトの世界」だった。\nけれど、昨日までとは何かが違っていた。\n\n大地の色が、少し温かい。\n風の音が、やけに穏やかに響く。\n木々の葉が、光を反射してきらめいている。\nまるで、この世界そのものが“息を吹き返した”かのようだった。\n\n「……成功、したのか？」\n\n呟きながら、俺は丘の上に立った。\nあの塔は、もはや黒くそびえてはいなかった。\n跡地には白い光の柱が立ち昇り、空へと溶けていく。\nそこからは、ゆるやかな旋律のような音が聞こえた。\n耳ではなく、心に響くような不思議な音だ。\n\n「創造と破壊の均衡が戻った……ってことなのか。」\n\n胸ポケットに手を入れる。\nそこには、もうエンダーパールも、青いランタンもなかった。\nけれど、代わりに小さな“光の粒”が残っていた。\nそれは、あの世界の記憶の欠片のように淡く光り、指先の温度で脈打っていた。\n\n「……あの声も、もう聞こえないな。」\n\n創造主の言葉。\nエンダーマンの残響。\n村の男の忠告。\nすべてが静かに消えていった。\nけれど、不思議と寂しくはなかった。\n\n彼らは、もうこの世界の一部になったのだ。\nそして——たぶん、俺も。\n\n俺は地面にしゃがみ、草のブロックを軽く叩いた。\nカンッ、カンッ、カンッ……\nどこか懐かしい音。\nポンッと土が浮かび上がり、手の中に収まる。\n\n「……最初と同じだ。」\n\n気が動転して地面を叩き続けた、あの“最初の日”。\nあの時は恐怖だった。\nでも今は違う。\nそれは、“生きている証拠”の音だ。\n\n俺は空を見上げた。\n太陽が高く昇り、世界がまるで祝福するように輝いている。\nそして、ふと気づく。\n\n——現実の空より、ずっと綺麗だ。\n\n風が頬を撫で、草の波が揺れた。\n遠くに見える森の奥からは、柔らかな光が漏れている。\nそこにはまだ見ぬ冒険がある。\n新しい洞窟、新しい村、そして新しい出会い。\n\n「……よし。」\n\n俺は立ち上がり、ツルハシを肩に担いだ。\nこの世界の“修復者”としてではなく、\nただ一人の“生きる者”として。\n\n足元の土がサクッと鳴り、風が前へ押し出す。\n太陽の光が目に眩しい。\n\n——この世界は、終わらない。\n——俺がいる限り、何度でも始まる。\n\n「さあ、作ろう。俺の世界を。」\n\n笑いながら歩き出す。\n草原の彼方へ、ブロックの地平線の向こうへ。\n\nそして、遠くの空に、白い光がゆっくりと揺れた。\nまるで創造主が最後に微笑んだかのように。\n\n\n---\n\n〈エピローグ〉\n\nあのあと、俺は拠点を作った。\n丸石の家、畑、そして丘の上の塔——かつて闇に包まれた場所だ。\n塔の内部には、青い炎がひとつ灯っている。\n誰も知らないだろう。\nそれが「魂の灯」の最後の欠片だということを。\n\n夜になると、その灯は星と同じように静かに瞬く。\nそして、風の中で微かに声が聞こえる。\n\n『——よくやった、修復者。\n　でも、忘れるな。\n　世界は“終わり”ではなく、“更新”され続ける。』\n\n俺はその声に微笑み、焚き火を見つめる。\n新しい朝が来る。\nまた新しいブロックが積まれ、世界が形を変えていく。\n\n俺は今でも、ときどき思う。\n——もしかしたら、現実のほうが夢で、\n　この方形の世界こそが“本当の現実”なのかもしれない、と。\n\nでも、それでいい。\nどちらの世界でも、俺は俺だ。\n生きて、作って、壊して、また作る。\nそれが、この世界の真理だから。\n\nそして今日もまた、俺は地面を叩く。\nあの音を、確かめるように。\n\nカンッ。カンッ。カンッ。\n\n——物語は、まだ続いている。\n\n＜完＞"}]};
+
+  // =========================
+  // 要素参照
+  // =========================
+  let current = 1;
+  const h = document.getElementById('h');
+  const pre = document.getElementById('content');
+  const plist = document.getElementById('plist');
+  const pageNum = document.getElementById('pageNum');
+  const viewPage = document.getElementById('viewPage');
+  const toc = document.getElementById('toc');
+  const tocList = document.getElementById('tocList');
+  const btnToc = document.getElementById('btnToc');
+  const backToToc = document.getElementById('backToToc');
+  const ttsToggle = document.getElementById('ttsToggle');
+  const ttsPause = document.getElementById('ttsPause');
+  const ttsStop = document.getElementById('ttsStop');
+  const rateInput = document.getElementById('rate');
+  const autoScrollChk = document.getElementById('autoScroll');
+  const voiceSelect = document.getElementById('voiceSelect');
+
+  // =========================
+  // IndexedDB
+  // =========================
+  const DB_NAME = 'novel_reader';
+  const STORE = 'progress';
+  const STORE_TTS = 'tts_resume';
+  const STORE_PREFS = 'prefs';
+  const KEY = 'title:' + Data.title;
+
+  function idbOpen(){
+    return new Promise(function(resolve, reject){
+      const req = indexedDB.open(DB_NAME, 22);
+      req.onupgradeneeded = function(){
+        const db = req.result;
+        if(!db.objectStoreNames.contains(STORE)){
+          db.createObjectStore(STORE, { keyPath: 'key' });
+        }
+        if(!db.objectStoreNames.contains(STORE_TTS)){
+          db.createObjectStore(STORE_TTS, { keyPath: 'key' });
+        }
+        if(!db.objectStoreNames.contains(STORE_PREFS)){
+          db.createObjectStore(STORE_PREFS, { keyPath: 'key' });
+        }
+      };
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+  }
+  async function saveProgress(page){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put({ key: KEY, page: page, updatedAt: Date.now() });
+      tx.oncomplete = function(){ db.close(); };
+    }catch(e){}
+  }
+  async function loadProgress(){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE, 'readonly');
+      const getReq = tx.objectStore(STORE).get(KEY);
+      const val = await new Promise(function(res){ getReq.onsuccess=function(){ res(getReq.result); }; getReq.onerror=function(){ res(null); }; });
+      db.close();
+      return (val && typeof val.page === 'number') ? val.page : null;
+    }catch(e){ return null; }
+  }
+  function ttsKey(page){ return 'tts:' + Data.title + ':' + page; }
+  async function saveTTSOffset(page, offset){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_TTS, 'readwrite');
+      tx.objectStore(STORE_TTS).put({ key: ttsKey(page), page: page, offset: offset, updatedAt: Date.now() });
+      tx.oncomplete = function(){ db.close(); };
+    }catch(e){}
+  }
+  async function loadTTSOffset(page){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_TTS, 'readonly');
+      const req = tx.objectStore(STORE_TTS).get(ttsKey(page));
+      const val = await new Promise(function(res){ req.onsuccess=function(){ res(req.result); }; req.onerror=function(){ res(null); }; });
+      db.close();
+      return (val && typeof val.offset === 'number') ? val.offset : 0;
+    }catch(e){ return 0; }
+  }
+  async function saveRate(val){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_PREFS, 'readwrite');
+      tx.objectStore(STORE_PREFS).put({ key: 'tts_rate', value: Number(val), updatedAt: Date.now() });
+      tx.oncomplete = function(){ db.close(); };
+    }catch(e){}
+  }
+  async function loadRate(){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_PREFS, 'readonly');
+      const req = tx.objectStore(STORE_PREFS).get('tts_rate');
+      const val = await new Promise(function(res){ req.onsuccess=function(){ res(req.result); }; req.onerror=function(){ res(null); }; });
+      db.close();
+      return (val && typeof val.value === 'number') ? val.value : null;
+    }catch(e){ return null; }
+  }
+
+  // 音声選択の保存/読込
+  async function saveVoice(name){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_PREFS, 'readwrite');
+      tx.objectStore(STORE_PREFS).put({ key: 'tts_voice', value: String(name||''), updatedAt: Date.now() });
+      tx.oncomplete = function(){ db.close(); };
+    }catch(e){}
+  }
+  async function loadVoice(){
+    try{
+      const db = await idbOpen();
+      const tx = db.transaction(STORE_PREFS, 'readonly');
+      const req = tx.objectStore(STORE_PREFS).get('tts_voice');
+      const val = await new Promise(function(res){ req.onsuccess=function(){ res(req.result); }; req.onerror=function(){ res(null); }; });
+      db.close();
+      return (val && typeof val.value === 'string') ? val.value : '';
+    }catch(e){ return ''; }
+  }
+
+  // =========================
+  // 音声（Voice）選択
+  // =========================
+  let voices = [];
+  let selectedVoiceName = '';
+
+  function populateVoiceSelect(){
+    if(!voiceSelect) return;
+    // 現在の選択を保持
+    const keep = selectedVoiceName || voiceSelect.value || '';
+    // いったん全削除
+    while(voiceSelect.firstChild){ voiceSelect.removeChild(voiceSelect.firstChild); }
+    // 既定
+    const opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = '（ブラウザ既定）';
+    voiceSelect.appendChild(opt0);
+    // 日本語優先で並べ、その後その他
+    const ja = voices.filter(v=> (v.lang||'').toLowerCase().startsWith('ja'));
+    const other = voices.filter(v=> !(v.lang||'').toLowerCase().startsWith('ja'));
+    function addOpts(arr){
+      for(var i=0;i<arr.length;i++){
+        const o = document.createElement('option');
+        o.value = arr[i].name;
+        o.textContent = arr[i].name + (arr[i].lang ? ' / ' + arr[i].lang : '');
+        voiceSelect.appendChild(o);
+      }
+    }
+    if(ja.length){
+      const g = document.createElement('optgroup'); g.label = '日本語';
+      voiceSelect.appendChild(g);
+      for(var i=0;i<ja.length;i++){
+        const o = document.createElement('option');
+        o.value = ja[i].name;
+        o.textContent = ja[i].name + (ja[i].lang ? ' / ' + ja[i].lang : '');
+        g.appendChild(o);
+      }
+    }
+    if(other.length){
+      const g2 = document.createElement('optgroup'); g2.label = 'その他';
+      voiceSelect.appendChild(g2);
+      for(var j=0;j<other.length;j++){
+        const o2 = document.createElement('option');
+       o2.value = other[j].name;
+       o2.textContent = other[j].name + (other[j].lang ? ' / ' + other[j].lang : '');
+       g2.appendChild(o2);
+     }
+    }
+    // 選択復元
+    voiceSelect.value = keep;
+    selectedVoiceName = voiceSelect.value;
+  }
+
+  function refreshVoices(){
+    try{
+      voices = window.speechSynthesis ? (window.speechSynthesis.getVoices() || []) : [];
+      populateVoiceSelect();
+    }catch(e){}
+  }
+
+  if('speechSynthesis' in window){
+    // 一部ブラウザは非同期でvoicesが届く
+    window.speechSynthesis.onvoiceschanged = refreshVoices;
+  }
+
+  if(voiceSelect){
+    voiceSelect.addEventListener('change', function(){
+      selectedVoiceName = voiceSelect.value || '';
+      saveVoice(selectedVoiceName);
+    });
+  }
+
+  // =========================
+  // 読み上げ制御
+  // =========================
+  let autoReading = false;
+  let currentUtterance = null;
+  let lineEnds = [];
+  let textCache = '';
+  let lastHighlightedLine = -1;
+
+  // 再開位置管理
+  let lastCharIndexAbs = 0;
+  let currentBaseOffset = 0;
+  let ttsSaveNextAt = 0;
+
+  // Wake Lock
+  let wakeLock = null;
+  async function requestWakeLock(){
+    try{
+      if('wakeLock' in navigator && !wakeLock){
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', function(){ wakeLock = null; });
+      }
+    }catch(e){}
+  }
+  async function releaseWakeLock(){
+    try{ if(wakeLock){ await wakeLock.release(); wakeLock = null; } }catch(e){}
+  }
+
+  // Android向け自動スクロールフォールバック
+  let autoScrollRAF = null;
+  function startAutoScroll(){
+    stopAutoScroll();
+    if(!autoScrollChk.checked) return;
+    let lastTs = null;
+    const SPEED = 10 * parseInt(rateInput.value); // px/sec
+    function tick(ts){
+//if (window.matchMedia('(max-width: 800px)').matches) {
+if(false){
+      if(!autoReading || !window.speechSynthesis || !window.speechSynthesis.speaking){
+        autoScrollRAF = null;
+        return;
+      }
+      if(lastTs != null){
+        const dt = (ts - lastTs) / 1000;
+        window.scrollBy(0, SPEED * dt);
+      }
+      lastTs = ts;
+      autoScrollRAF = requestAnimationFrame(tick);
+}
+    }
+    autoScrollRAF = requestAnimationFrame(tick);
+  }
+  function stopAutoScroll(){
+    if(autoScrollRAF){ cancelAnimationFrame(autoScrollRAF); autoScrollRAF = null; }
+  }
+
+  function splitIntoLines(text){
+    // pre内を行ごとにspanで区切る（ハイライト＆スクロール用）
+    pre.innerHTML = '';
+    const lines = text.split('\n');
+    lineEnds = [];
+    let acc = 0;
+    for(var i=0;i<lines.length;i++){
+      const ln = lines[i];
+      const span = document.createElement('span');
+      span.className = 'line';
+      span.textContent = ln.length ? ln : ' ';
+      pre.appendChild(span);
+      if(i < lines.length - 1){
+        pre.appendChild(document.createTextNode('\n'));
+      }
+      acc += ln.length + (i < lines.length - 1 ? 1 : 0);
+      lineEnds.push(acc);
+    }
+  }
+  function lineIndexFromChar(charIndex){
+    for(var i=0;i<lineEnds.length;i++){
+      if(charIndex < lineEnds[i]) return i;
+    }
+    return lineEnds.length - 1;
+  }
+  function centerOnElement(el){
+    const header = document.querySelector('header');
+    const headerH = header ? header.getBoundingClientRect().height : 0;
+    const rect = el.getBoundingClientRect();
+    const targetY = window.scrollY + rect.top - ((window.innerHeight - rect.height) / 2) - (headerH / 2);
+    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+  }
+
+  function highlightLineByChar(charIndex){
+  // 行インデックス算出
+  var idx = lineIndexFromChar(charIndex);
+  if (idx === lastHighlightedLine) return;
+  lastHighlightedLine = idx;
+
+  // ハイライト付け替え
+  var nodes = pre.querySelectorAll('.line');
+  for (var i = 0; i < nodes.length; i++) nodes[i].classList.remove('current');
+  var n = nodes[idx];
+  if (!n) return;
+  n.classList.add('current');
+
+
+
+  // すぐに一度選択（スクロール前）
+  selectNodeContents(n);
+
+  // ========= 自動スクロール（スマホ対応フォールバック付き） =========
+  if (autoScrollChk && autoScrollChk.checked){
+    var header = document.querySelector('header');
+    var headerH = header ? header.getBoundingClientRect().height : 0;
+    var se = document.scrollingElement || document.documentElement || document.body;
+
+    var rect = n.getBoundingClientRect();
+    var targetY = (se.scrollTop + rect.top) - Math.max(0, (window.innerHeight - rect.height) / 2) - (headerH / 2);
+    if (targetY < 0) targetY = 0;
+
+    var usedNative = false;
+    try {
+      if (typeof se.scrollTo === 'function') {
+        se.scrollTo({ top: targetY, behavior: 'smooth' });
+        usedNative = true;
+      }
+    } catch(_e){}
+
+    if (!usedNative){
+      // 手動アニメーション（Android WebView 等）
+      var start = se.scrollTop;
+      var dist  = targetY - start;
+      var startTs = null;
+
+      requestAnimationFrame(step);
+    }
+
+    // スクロール後にもう一度選択（モバイルで選択が外れる対策）
+    setTimeout(function(){
+      selectNodeContents(n);
+      // さらに中央寄せがズレていたら scrollIntoView を最後の手段で
+      var r2 = n.getBoundingClientRect();
+      if (Math.abs(r2.top - (window.innerHeight / 2)) > 48) {
+        try {
+          if (n.scrollIntoView) {
+            try { n.scrollIntoView({ block: 'center', behavior: 'auto' }); }
+            catch(__e){ n.scrollIntoView(); }
+            se.scrollTop = (se.scrollTop || 0) - (headerH / 2);
+          }
+        } catch(__e2){}
+        // 再度選択を強制
+        setTimeout(function(){ selectNodeContents(n); }, 30);
+      }
+    }, 120);
+  }
+}
+      function step(ts){
+        if (startTs === null) startTs = ts;
+        var t = (ts - startTs) / 250; if (t > 1) t = 1;
+        var e = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t; // easeInOutQuad
+        se.scrollTop = start + dist * e;
+        if (t < 1) requestAnimationFrame(step);
+  }
+    // ========= 追加：モバイルでも確実に「範囲選択」させる =========
+  function selectNodeContents(el){
+    try{
+      var sel = window.getSelection && window.getSelection();
+      if (!sel) return;
+      var range = document.createRange();
+      // 空行対策：必ずテキストノードを用意
+      if (!el.firstChild) el.appendChild(document.createTextNode(' '));
+      range.selectNodeContents(el);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }catch(_e){}
+  }
+async function speakPage(opts){
+  if(!opts) opts = {};
+  stopTTS(true);
+
+  // 現在ページ
+  var p = null;
+  for (var i = 0; i < Data.pages.length; i++){
+    if (Data.pages[i].number === current){ p = Data.pages[i]; break; }
+  }
+  if(!p) return;
+  textCache = p.text || '';
+
+  // 再開位置
+  var startFrom = 0;
+  try {
+    startFrom = opts.fromStart ? 0 : (await loadTTSOffset(current) || 0);
+  } catch(e){ startFrom = 0; }
+  currentBaseOffset = startFrom;
+  lastCharIndexAbs = startFrom;
+
+  // 行配列と cumulative index を更新（ハイライト用）
+  splitIntoLines(textCache);
+
+  if(!('speechSynthesis' in window)){ return; }
+
+try { highlightLineByChar(0); } catch(_e){}
+
+    
+
+  // 最初の行から開始（または再開位置の属する行から）
+  playFrom(startFrom);
+  }
+
+    // 指定オフセットの行末インデックス（改行を含む）を返す
+  function lineEndFromOffset(offset){
+    if (offset >= textCache.length) return textCache.length;
+    var idx = lineIndexFromChar(offset);                 // 既存の関数を利用
+    var end = lineEnds && lineEnds[idx];                 // 累積長（改行も含む）
+    if (typeof end !== 'number') end = textCache.length;
+    return end;
+  }
+
+  // あるオフセットから「その行だけ」読み上げる
+  function playFrom(offset){
+    if (offset >= textCache.length){
+      // ページ末尾 → 次ページへ
+      var maxPage = 1;
+      for (var j = 0; j < Data.pages.length; j++){
+        if (Data.pages[j].number > maxPage) maxPage = Data.pages[j].number;
+      }
+      if (autoReading && current < maxPage){
+        var next = current + 1;
+        saveTTSOffset(next, 0);
+        setPage(next, { keepAuto:true });
+        try { highlightLineByChar(0); } catch(_e){}
+        speakPage({ fromStart:true });
+      } else {
+        autoReading = false;
+        saveTTSOffset(current, 0);
+        try { highlightLineByChar(0); } catch(_e){}
+      }
+      return;
+  }
+  var end = lineEndFromOffset(offset);
+    var chunkText = textCache.slice(offset, end);
+    // 空行でも読み上げを進めたいので、空であれば改行を読み上げずに次へ
+    if (!chunkText){
+      saveTTSOffset(current, end);
+      playFrom(end);
+      return;
+    }
+
+    var u = new SpeechSynthesisUtterance(chunkText);
+    u.lang = 'ja-JP';
+    var r = parseFloat(rateInput && rateInput.value ? rateInput.value : '1');
+    if (!isFinite(r)) r = 1;
+    u.rate = Math.min(100, Math.max(0.5, r));
+    // 選択済みの声があれば適用（なければ日本語系、なければ既定）
+   try{
+      if(voices && voices.length){
+        var v = null;
+        if(selectedVoiceName){
+          for(var i=0;i<voices.length;i++){ if(voices[i].name === selectedVoiceName){ v = voices[i]; break; } }
+        }
+        if(!v){
+          for(var j=0;j<voices.length;j++){ if((voices[j].lang||'').toLowerCase().startsWith('ja')){ v = voices[j]; break; } }
+        }
+        if(v) u.voice = v;
+      }
+    }catch(e){}
+    u.onstart = function(){
+      ttsPause.disabled = false;
+      ttsStop.disabled  = false;
+      //ttsToggle.textContent = '⏹ 自動読み上げ中';
+      startAutoScroll();
+      requestWakeLock();
+    };
+
+    u.onboundary = function(e){
+      try{
+        if (e && (e.name === 'word' || typeof e.charIndex === 'number')){
+          var abs = (e.charIndex || 0) + offset;
+          lastCharIndexAbs = abs;
+          highlightLineByChar(abs);
+          var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+          if (now >= ttsSaveNextAt){
+            saveTTSOffset(current, abs);
+            ttsSaveNextAt = now + 500;
+          }
+        }
+      }catch(_e){}
+    };
+
+    u.onend = function(){
+      // この行の末尾を保存し、次の行へ
+      lastCharIndexAbs = end;
+      currentBaseOffset = end;
+      saveTTSOffset(current, end);
+
+      ttsPause.disabled = true;
+      ttsStop.disabled  = true;
+      //ttsToggle.textContent = '▶ 自動読み上げ';
+      stopAutoScroll();
+      releaseWakeLock();
+try { highlightLineByChar(end); } catch(_e){}
+      if (autoReading){
+        playFrom(end); // 同一ページの次の行を読む
+      } else {
+        try { highlightLineByChar(0); } catch(_e){}
+      }
+    };
+
+    currentUtterance = u;
+    window.speechSynthesis.speak(u);
+  }
+
+  function pauseTTS(){
+    if(window.speechSynthesis && window.speechSynthesis.speaking && !window.speechSynthesis.paused){
+      window.speechSynthesis.pause();
+      stopAutoScroll();
+      releaseWakeLock();
+      saveTTSOffset(current, lastCharIndexAbs);
+    }else if(window.speechSynthesis && window.speechSynthesis.paused){
+      window.speechSynthesis.resume();
+      startAutoScroll();
+      requestWakeLock();
+    }
+  }
+  function stopTTS(silent){
+    if(window.speechSynthesis){
+      window.speechSynthesis.cancel();
+    }
+    currentUtterance = null;
+    stopAutoScroll();
+    releaseWakeLock();
+    if(!silent){
+      ttsPause.disabled = true;
+      ttsStop.disabled = true;
+      ttsToggle.textContent = '▶ 自動読み上げ';
+    }
+    const nodes = pre.querySelectorAll('.line');
+    for(var i=0;i<nodes.length;i++){ nodes[i].classList.remove('current'); }
+    saveTTSOffset(current, lastCharIndexAbs);
+  }
+
+  // =========================
+  // UIロジック
+  // =========================
+  function setPage(num, opts){
+    if(!opts) opts = {};
+    if(currentUtterance) stopTTS(true);
+
+    const p = Data.pages.find(function(x){ return x.number===num; }) || Data.pages[0];
+    if(!p) return;
+    current = p.number;
+    h.textContent = (p.title ? p.title + ' / ' : '') + p.number + ' ページ目';
+    splitIntoLines(p.text || '');
+
+ 
+    // ▼ ページが変わったら読み上げの再開位置を必ず先頭に
+    lastCharIndexAbs = 0;
+    currentBaseOffset = 0;
+    saveTTSOffset(current, 0);
+
+
+    pageNum.value = current;
+    renderList();
+    const btns = document.querySelectorAll('nav.pages button');
+    for(var i=0;i<btns.length;i++){
+      var b = btns[i];
+      b.setAttribute('aria-current', (b.dataset.num == String(current)) ? 'page' : 'false');
+    }
+    showReader();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    saveProgress(current);
+
+    if(autoReading || opts.keepAuto){
+      autoReading = true;
+      speakPage({ fromStart:true });
+    }
+  }
+
+  function renderList(){
+    // 下部のページ番号ボタン
+    plist.innerHTML = '';
+    const pagesSorted = Data.pages.slice().sort(function(a,b){ return a.number - b.number; });
+    for(var i=0;i<pagesSorted.length;i++){
+      (function(p){
+        const b = document.createElement('button');
+        b.textContent = p.number;
+        b.dataset.num = String(p.number);
+        b.addEventListener('click', function(){ setPage(p.number); });
+        if(p.number===current) b.setAttribute('aria-current','page');
+        plist.appendChild(b);
+      })(pagesSorted[i]);
+    }
+
+    // 目次（コンパクト・前2〜後4のみ）
+    tocList.innerHTML = '';
+    var idxCur = pagesSorted.findIndex(function(p){ return p.number === current; });
+    //var start = Math.max(0, idxCur - 2);
+    //var end = Math.min(pagesSorted.length, start + 7); // 前2 + 自身 + 後4 = 最大7件
+    var start = 0;
+    var end = pagesSorted.length;
+    const visiblePages = pagesSorted.slice(start, end);
+    for(var j=0;j<visiblePages.length;j++){
+      (function(p){
+        const item = document.createElement('div');
+        item.className = 'toc-item';
+        item.addEventListener('click', function(){ setPage(p.number); });
+
+        const num = document.createElement('div');
+        num.className = 'toc-num';
+        num.textContent = p.number + ' ページ目';
+
+        const title = document.createElement('div');
+        title.className = 'toc-title';
+        title.textContent = p.title || 'タイトル未設定';
+
+        item.appendChild(num);
+        item.appendChild(title);
+        tocList.appendChild(item);
+      })(visiblePages[j]);
+    }
+  }
+
+  function showTOC(){
+    toc.classList.remove('hidden');
+    viewPage.classList.add('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function showReader(){
+    viewPage.classList.remove('hidden');
+    toc.classList.add('hidden');
+  }
+
+  // =========================
+  // イベント
+  // =========================
+  document.getElementById('prev').onclick = function(){ setPage(Math.max(1, current-1)); };
+  document.getElementById('next').onclick = function(){
+    const maxPage = Math.max.apply(null, Data.pages.map(function(p){ return p.number; }));
+    setPage(Math.min(maxPage, current+1));
+  };
+  pageNum.addEventListener('change', function(){ const v = Number(pageNum.value) || 1; setPage(v); });
+  window.addEventListener('keydown', function(e){
+    if(e.key==='ArrowLeft' || e.key==='h') setPage(Math.max(1, current-1));
+    if(e.key==='ArrowRight' || e.key==='l'){
+      const maxPage = Math.max.apply(null, Data.pages.map(function(p){ return p.number; }));
+      setPage(Math.min(maxPage, current+1));
+    }
+    if(e.key==='t') showTOC();
+    if(e.key===' ' && autoReading){ e.preventDefault(); pauseTTS(); }
+  });
+  btnToc.addEventListener('click', showTOC);
+  backToToc.addEventListener('click', showTOC);
+
+  // 読み上げUI
+  ttsToggle.addEventListener('click', function(){
+    autoReading = !autoReading;
+    if(autoReading){
+      ttsToggle.textContent = '⏹ 自動読み上げ中';
+      speakPage({ fromStart:false });
+    }else{
+      ttsToggle.textContent = '▶ 自動読み上げ';
+      stopTTS(false);
+    }
+  });
+  ttsPause.addEventListener('click', function(){ pauseTTS(); });
+  ttsStop.addEventListener('click', function(){ autoReading=false; stopTTS(false); });
+
+  rateInput.addEventListener('change', function(){
+    // 再生中なら一旦停止→再開して反映
+    if(window.speechSynthesis && window.speechSynthesis.speaking){
+      const wasAuto = autoReading;
+      stopTTS(true);
+      if(wasAuto){ speakPage({ fromStart:false }); }
+    }
+    saveRate(rateInput.value);
+  });
+
+  // タブ可視状態
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'hidden'){
+      saveTTSOffset(current, lastCharIndexAbs);
+    }else if(document.visibilityState === 'visible'){
+      if(autoReading){
+        requestWakeLock();
+        if(!(window.speechSynthesis && window.speechSynthesis.speaking)){
+          speakPage({ fromStart:false });
+        }
+      }
+    }
+  });
+
+  // 初期化
+  (async function(){
+    // 速度を復元
+    const savedRate = await loadRate();
+    if(savedRate && !Number.isNaN(savedRate)){
+      rateInput.value = String(savedRate);
+    }
+    // 音声選択を復元してから一覧を描画
+    try{
+      selectedVoiceName = await loadVoice();
+    }catch(e){ selectedVoiceName = ''; }
+    refreshVoices(); // onvoiceschanged でも後から再度更新される
+    renderList();
+    const saved = await loadProgress();
+    if(saved && Data.pages.some(function(p){ return p.number===saved; })){
+      setPage(saved);
+    }else{
+      setPage(1);
+    }
+  })();
+  </script>
+  </body></html>
