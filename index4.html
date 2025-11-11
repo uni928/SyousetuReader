@@ -510,7 +510,7 @@ el.editor.addEventListener('paste', async (e) => {
 
 for(let i = slashIndex + 1; i < lines.length; i++) {
   if((lines[i].startsWith("「") || lines[i].startsWith("　") || lines[i].startsWith("『")) && lines[i].trim() != "") {
-    slashIndex = i - 1;
+    slashIndex = i - 2;
     break;
   }
 }
