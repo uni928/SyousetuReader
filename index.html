@@ -449,10 +449,14 @@ el.editor.addEventListener('paste', async (e) => {
 
   // 本文: タイトルの次の行〜「評価をするにはログインしてください」直前まで
   const endIndex = lines.findIndex((l, i) => i > slashIndex + 1 && l.includes('評価をするにはログインしてください'));
-  const body = lines
+  let body = lines
     .slice(slashIndex + 2, endIndex > 0 ? endIndex : undefined)
     .join('\n')
     .trim();
+
+  if (!body.startsWith("\n")) {
+  body = "\n" + body;
+}
 
   // ページタイトルと本文に反映
   const n = getSelectedNovel();
@@ -1412,6 +1416,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
