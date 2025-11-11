@@ -509,7 +509,7 @@ el.editor.addEventListener('paste', async (e) => {
   const title = lines[slashIndex + 1].trim();
 
 for(let i = slashIndex + 1; i < lines.length; i++) {
-  if(lines[i].startsWith("　") && lines[i].trim() != "") {
+  if((lines[i].startsWith("「") || lines[i].startsWith("　") || lines[i].startsWith("『") && lines[i].trim() != "") {
     slashIndex = i - 1;
     break;
   }
