@@ -547,7 +547,7 @@ el.editor.addEventListener('paste', async (e) => {
   const text = (e.clipboardData || window.clipboardData).getData('text');
 
   if (!text.includes('小説家になろう')) return; // 該当しないなら通常動作
-  e.preventDefault();
+  //e.preventDefault();
 
   const lines = text.split(/\r?\n/);
   let slashIndex = lines.findIndex(l => 0 < l.length && l.indexOf('作者') < 0 && 0 <= l.indexOf('/'));console.log(slashIndex);
