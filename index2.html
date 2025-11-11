@@ -201,6 +201,7 @@
             <button class="btn good" id="applyTitle">小説名を適用</button>
             <button class="btn" id="clearText">本文クリア</button>
             <button class="btn ghost" id="insertTemplate">テンプレ挿入</button>
+            <button class="btn ghost" id="seikei">整形</button>
             <button class="btn ghost" id="addPage2">＋ ページを追加</button>
             <label>
   <input type="checkbox" id="commentskip" checked>
@@ -311,6 +312,7 @@ const el = {
   pageList: document.getElementById('pageList'),
   addPage: document.getElementById('addPage'),
   addPage2: document.getElementById('addPage2'),
+  seikei: document.getElementById('seikei'),
   duplicatePage: document.getElementById('duplicatePage'),
   swapMode: document.getElementById('swapMode'),
   renumberPages: document.getElementById('renumberPages'),
@@ -495,6 +497,53 @@ el.renumberPages.onclick = ()=>{
   n.pages.sort((a,b)=>a.number-b.number).forEach((p,i)=> p.number = i+1);
   Model.selectedPageNumber = 1; renderAll(); queueSave();
 }
+  
+
+el.seikei.onclick = ()=>{
+  const text = el.editor.value;
+
+  if (!text.includes('小説家になろう')) return; // 該当しないなら通常動作
+
+  const lines = text.split(/\r\n|\r|\n/);
+  //let slashIndex = lines.findIndex(l => 0 < l.length && l.indexOf('作者') < 0 && 0 <= l.indexOf('/'));console.log(slashIndex);
+  //if (slashIndex < 0 || slashIndex + 2 >= lines.length) return;
+let slashIndex = 0;
+  
+
+for(let i = slashIndex + 1; i < lines.length; i++) {
+  if((lines[i].startsWith("「") || lines[i].startsWith("　") || lines[i].startsWith("『")) && lines[i].trim() != "") {
+    slashIndex = i - 2;
+    break;
+  }
+}
+
+  // タイトル: 「/」の次の行
+  const title = lines[slashIndex + 1].trim();
+
+  // 本文: タイトルの次の行〜「評価をするにはログインしてください」直前まで
+  const endIndex = lines.findIndex((l, i) => i > slashIndex + 1 && l.includes('評価をするにはログインしてください。'));
+  let body = lines
+    .slice(slashIndex + 2, endIndex > 0 ? endIndex : undefined)
+    .join('\n')
+    .trim();
+
+ if (!body.startsWith("\n")) {
+  body = "\n" + body;
+  }
+  
+  // ページタイトルと本文に反映
+  const n = getSelectedNovel();
+  if (!n) return;
+  const p = getPage(n, Model.selectedPageNumber);
+  if (!p) return;
+  p.title = title;
+  p.text = body;
+
+  // UIへ反映
+  document.getElementById('currentPageTitle').value = title;
+  el.editor.value = body.replace("\n\n", "\n");
+  renderPages(); queueSave();
+    }
 
 // ============================
 // エディタ
@@ -1492,4 +1541,5 @@ renderAll();
 </script>
 </body>
 </html>
+
 
