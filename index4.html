@@ -495,7 +495,7 @@ el.renumberPages.onclick = ()=>{
 }
 
 el.seikei.onclick = ()=>{
-  const text = (e.clipboardData || window.clipboardData).getData('text');
+  const text = el.editor.value;
 
   if (!text.includes('小説家になろう')) return; // 該当しないなら通常動作
   e.preventDefault();
