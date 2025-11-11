@@ -501,11 +501,10 @@ el.seikei.onclick = ()=>{
   e.preventDefault();
 
   const lines = text.split(/\r?\n/);
-  let slashIndex = lines.findIndex(l => 0 < l.length && l.indexOf('作者') < 0 && 0 <= l.indexOf('/'));console.log(slashIndex);
-  if (slashIndex < 0 || slashIndex + 2 >= lines.length) return;
-
-  // タイトル: 「/」の次の行
-  const title = lines[slashIndex + 1].trim();
+  //let slashIndex = lines.findIndex(l => 0 < l.length && l.indexOf('作者') < 0 && 0 <= l.indexOf('/'));console.log(slashIndex);
+  //if (slashIndex < 0 || slashIndex + 2 >= lines.length) return;
+let slashIndex = 0;
+  
 
 for(let i = slashIndex + 1; i < lines.length; i++) {
   if((lines[i].startsWith("「") || lines[i].startsWith("　") || lines[i].startsWith("『")) && lines[i].trim() != "") {
@@ -513,6 +512,9 @@ for(let i = slashIndex + 1; i < lines.length; i++) {
     break;
   }
 }
+
+  // タイトル: 「/」の次の行
+  const title = lines[slashIndex + 1].trim();
 
   // 本文: タイトルの次の行〜「評価をするにはログインしてください」直前まで
   const endIndex = lines.findIndex((l, i) => i > slashIndex + 1 && l.includes('評価をするにはログインしてください。'));
