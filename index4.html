@@ -497,8 +497,6 @@ el.renumberPages.onclick = ()=>{
 el.seikei.onclick = ()=>{
   const text = el.editor.value;
 
-  alert(text);
-
   if (!text.includes('小説家になろう')) return; // 該当しないなら通常動作
   e.preventDefault();
 
@@ -536,7 +534,7 @@ for(let i = slashIndex + 1; i < lines.length; i++) {
   if (!p) return;
   p.title = title;
   p.text = body;
-
+  alert(body);
   // UIへ反映
   document.getElementById('currentPageTitle').value = title;
   el.editor.value = body.replace("\n\n", "\n");
