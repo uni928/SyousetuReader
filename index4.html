@@ -499,9 +499,8 @@ el.seikei.onclick = ()=>{
 
   if (!text.includes('小説家になろう')) return; // 該当しないなら通常動作
   e.preventDefault();
-
+alert(text);
   const lines = text.split(/\r\n|\r|\n/);
-  alert(lines[0]);
   //let slashIndex = lines.findIndex(l => 0 < l.length && l.indexOf('作者') < 0 && 0 <= l.indexOf('/'));console.log(slashIndex);
   //if (slashIndex < 0 || slashIndex + 2 >= lines.length) return;
 let slashIndex = 0;
