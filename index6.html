@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ポータルサイト生成ツール</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #0b1120;
+    --accent: #38bdf8;
+    --accent-soft: rgba(56, 189, 248, 0.15);
+    --accent-strong: #06b6d4;
+    --border-subtle: rgba(148, 163, 184, 0.35);
+    --text-main: #e5e7eb;
+    --text-muted: #9ca3af;
+    --radius-xl: 18px;
+    --shadow-soft: 0 24px 60px rgba(15, 23, 42, 0.75);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #020617 100%);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 32px 16px;
+  }
+
+  .app-shell {
+    width: 100%;
+    max-width: 1120px;
+    background: radial-gradient(circle at top left, rgba(56,189,248,0.16), transparent 60%),
+                radial-gradient(circle at bottom right, rgba(129,140,248,0.15), transparent 55%),
+                linear-gradient(135deg, rgba(15,23,42,0.96), rgba(15,23,42,0.98));
+    border-radius: 24px;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    padding: 20px 20px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .app-shell::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    opacity: 0.25;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(94,234,212,0.32), transparent 55%),
+      radial-gradient(circle at 100% 0%, rgba(59,130,246,0.32), transparent 55%);
+    z-index: -1;
+  }
+
+  .app-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .app-title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px 2px 4px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: rgba(15, 23, 42, 0.85);
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+
+  .badge-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: radial-gradient(circle, var(--accent-strong), var(--accent));
+    box-shadow: 0 0 10px rgba(56,189,248,0.9);
+  }
+
+  h1 {
+    font-size: 22px;
+    margin: 0;
+    letter-spacing: .04em;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .app-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .pill-info {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(15,23,42,0.85);
+    border: 1px solid rgba(148,163,184,0.4);
+  }
+
+  .pill-info strong {
+    color: var(--accent-strong);
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 840px) {
+    .app-shell {
+      padding: 16px 14px 14px;
+    }
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .app-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .app-actions {
+      align-items: flex-start;
+    }
+  }
+
+  .panel {
+    background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.14), transparent 60%),
+                linear-gradient(145deg, rgba(15,23,42,0.98), rgba(15,23,42,0.94));
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(148,163,184,0.35);
+    padding: 14px 14px 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, rgba(56,189,248,0.2), transparent 60%) border-box;
+    mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.25;
+    pointer-events: none;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .panel-title-badge {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 30% 0%, var(--accent-strong), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #0b1120;
+    text-shadow: 0 0 4px rgba(15,23,42,0.75);
+  }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .hint code {
+    font-size: 11px;
+    background: rgba(15,23,42,0.9);
+    padding: 1px 4px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.5);
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 220px;
+    resize: vertical;
+    border-radius: 14px;
+    border: 1px solid rgba(148,163,184,0.7);
+    background: rgba(15,23,42,0.96);
+    color: var(--text-main);
+    padding: 10px 11px;
+    font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    outline: none;
+    box-shadow: inset 0 0 0 1px rgba(15,23,42,0.85);
+  }
+
+  textarea::placeholder {
+    color: rgba(148,163,184,0.8);
+  }
+
+  .controls-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    gap: 8px;
+  }
+
+  .controls-left {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  button.primary {
+    border: none;
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: radial-gradient(circle at 0 0, var(--accent-strong), var(--accent));
+    color: #0b1120;
+    box-shadow: 0 14px 28px rgba(8,47,73,0.7);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  button.primary:active {
+    transform: translateY(1px);
+    box-shadow: 0 10px 18px rgba(8,47,73,0.75);
+  }
+
+  button.secondary {
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.8);
+    background: rgba(15,23,42,0.95);
+    color: var(--text-main);
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  button.secondary:active {
+    transform: translateY(1px);
+  }
+
+  .status-text {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    margin-right: 4px;
+    display: inline-block;
+    background: radial-gradient(circle, #4ade80, #16a34a);
+    box-shadow: 0 0 10px rgba(34,197,94,0.8);
+  }
+
+  .portal-preview-shell {
+    border-radius: 14px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: radial-gradient(circle at top left, rgba(56,189,248,0.18), transparent 65%),
+                linear-gradient(145deg, #020617, #020617);
+    padding: 10px 11px;
+    min-height: 220px;
+    max-height: 320px;
+    overflow: auto;
+  }
+
+  .portal-outer {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 12px 10px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(55,65,81,0.9);
+    background: radial-gradient(circle at top left, rgba(56,189,248,0.18), transparent 60%),
+                radial-gradient(circle at bottom right, rgba(99,102,241,0.22), transparent 60%),
+                linear-gradient(135deg, #020617, #020617);
+    box-shadow: 0 18px 40px rgba(15,23,42,0.9);
+  }
+
+  .portal-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .portal-title {
+    font-size: 18px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-main);
+  }
+
+  .portal-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .portal-pill {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: rgba(15,23,42,0.9);
+    color: var(--text-muted);
+  }
+
+  .portal-section {
+    margin-top: 10px;
+    padding: 8px 9px;
+    border-radius: 12px;
+    background: rgba(15,23,42,0.95);
+    border: 1px solid rgba(55,65,81,0.9);
+  }
+
+  .portal-section h2 {
+    margin: 0 0 4px;
+    font-size: 15px;
+    color: #e5e7eb;
+  }
+
+  .portal-section h2 span {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(15,23,42,0.9);
+    border: 1px solid rgba(148,163,184,0.65);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 6px;
+  }
+
+  .portal-list {
+    margin: 4px 0 0;
+    padding-left: 16px;
+    list-style: none;
+  }
+
+  .portal-list li {
+    position: relative;
+    padding-left: 12px;
+    margin: 1px 0;
+    font-size: 13px;
+  }
+
+  .portal-list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--accent-strong);
+    font-size: 15px;
+  }
+
+  .portal-list a {
+    color: #a5b4fc;
+    text-decoration: none;
+    border-radius: 999px;
+    padding: 2px 7px;
+    margin-left: -4px;
+    transition: background 0.15s, transform 0.05s;
+    background: rgba(15,23,42,0.9);
+    border: 1px solid transparent;
+  }
+
+  .portal-list a:hover {
+    background: var(--accent-soft);
+    border-color: rgba(56,189,248,0.7);
+  }
+
+  .portal-list a:active {
+    transform: translateY(1px);
+  }
+
+  .bottom-panel {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  @media (max-width: 840px) {
+    .bottom-panel {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .code-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  #outputHtml {
+    min-height: 120px;
+    font-size: 12px;
+  }
+
+  .footnote {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-header">
+    <div class="app-title-block">
+      <div class="badge">
+        <span class="badge-dot"></span> IndexedDB Portal Maker
+      </div>
+      <h1>フォルダ内 HTML ポータル生成ツール</h1>
+      <div class="subtitle">
+        インデントで階層を指定するだけで、同一フォルダ内の作品ポータルサイトを自動生成します。
+      </div>
+    </div>
+    <div class="app-actions">
+      <div class="pill-info">
+        ⛁ <strong>自動保存</strong>：入力内容はリアルタイムでブラウザに保存されます
+      </div>
+      <div>ページを閉じても、次回この画面から再開できます。</div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- 左：構造入力 -->
+    <section class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <div class="panel-title-badge">IN</div>
+          構造テキスト入力
+        </div>
+        <div class="hint">
+          親行 + インデント付きの子行で構成します。例：<code>小説A / （全角スペース）小説A1</code>
+        </div>
+      </div>
+      <textarea id="structureInput" placeholder="例）&#10;小説A&#10;　小説A1&#10;　小説A2&#10;　小説A3&#10;小説B&#10;　小説B1&#10;　小説B2"></textarea>
+
+      <div class="controls-row">
+        <div class="controls-left">
+          <button class="primary" id="generateBtn">
+            <span>▶</span> ポータルを生成
+          </button>
+          <button class="secondary" id="clearBtn" title="入力内容をすべて消去します">
+            ✕ リセット
+          </button>
+        </div>
+        <div class="status-text" id="saveStatus">
+          <span class="status-dot"></span> 保存済み
+        </div>
+      </div>
+    </section>
+
+    <!-- 右：プレビュー＆コード -->
+    <section class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <div class="panel-title-badge">OUT</div>
+          ポータルプレビュー
+        </div>
+        <div class="hint">
+          生成されたポータルは「portal.html」などで保存し、元の小説 HTML と同じフォルダに置いてください。
+        </div>
+      </div>
+
+      <div class="portal-preview-shell" id="portalPreview">
+        <!-- ここにポータルプレビューが描画されます -->
+      </div>
+
+      <div class="bottom-panel">
+        <div>
+          <div class="code-label">完成ポータル HTML（コピーして新しい .html ファイルとして保存）</div>
+          <textarea id="outputHtml" readonly></textarea>
+          <div class="footnote">
+            ※ 例：<code>portal.html</code> として保存し、小説A1.html などと同じフォルダに置くとリンクが開けます。
+          </div>
+        </div>
+        <div>
+  <button class="secondary" id="copyBtn" style="margin-bottom:6px;">
+    📋 コードをコピー
+  </button>
+  <button class="secondary" id="downloadBtn" style="margin-bottom:6px; display:block; margin-top:2px;">
+    💾 portal.html をダウンロード
+  </button>
+  <div class="footnote" id="copyStatus">
+    コピーしたコードをテキストエディタに貼り付けて保存してください。
+  </div>
+  <div class="footnote" id="downloadStatus">
+    生成された HTML をファイルとして保存したい場合は、上のボタンを押してください。
+  </div>
+</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  // IndexedDB 設定
+  const DB_NAME = 'PortalDesignerDB';
+  const DB_VERSION = 1;
+  const STORE_NAME = 'state';
+  let db = null;
+  let saveTimer = null;
+
+  const structureInput = document.getElementById('structureInput');
+  const saveStatus = document.getElementById('saveStatus');
+  const portalPreview = document.getElementById('portalPreview');
+  const outputHtml = document.getElementById('outputHtml');
+  const copyStatus = document.getElementById('copyStatus');
+const downloadStatus = document.getElementById('downloadStatus');
+
+  function setSaveStatus(text, justSaved) {
+    saveStatus.textContent = text;
+    if (justSaved) {
+      saveStatus.style.opacity = '1';
+      setTimeout(() => {
+        saveStatus.style.opacity = '0.75';
+      }, 400);
+    }
+  }
+
+  function openDatabase() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = function(event) {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      request.onsuccess = function(event) {
+        db = event.target.result;
+        resolve(db);
+      };
+      request.onerror = function(event) {
+        console.error('IndexedDB error:', event.target.error);
+        reject(event.target.error);
+      };
+    });
+  }
+
+  function saveState() {
+    if (!db) return;
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const data = {
+      id: 'main',
+      text: structureInput.value,
+      html: outputHtml.value,
+      updatedAt: Date.now()
+    };
+    store.put(data);
+    tx.oncomplete = () => {
+      setSaveStatus('⛁ 保存済み', true);
+    };
+    tx.onerror = () => {
+      setSaveStatus('⚠ 保存に失敗しました', false);
+    };
+  }
+
+  function loadState() {
+    if (!db) return;
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.get('main');
+    request.onsuccess = () => {
+      const data = request.result;
+      if (data && typeof data.text === 'string') {
+        structureInput.value = data.text;
+      }
+      if (data && typeof data.html === 'string') {
+        outputHtml.value = data.html;
+      }
+      if (structureInput.value.trim()) {
+        generatePortal(); // 前回の状態から再生成
+      }
+    };
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, function(m) {
+      switch (m) {
+        case '&': return '&amp;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#39;';
+        default: return m;
+      }
+    });
+  }
+
+  function parseStructure(text) {
+    const lines = text.split(/\r?\n/);
+    const sections = [];
+    let current = null;
+
+    for (let rawLine of lines) {
+      const line = rawLine.replace(/\t/g, '    '); // タブをスペース扱い
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      const isChild = /^\s+/.test(line);
+
+      if (!isChild) {
+        current = { title: trimmed, items: [] };
+        sections.push(current);
+      } else if (current) {
+        current.items.push(trimmed);
+      }
+    }
+    return sections;
+  }
+
+  function buildPortalBody(sections) {
+    if (!sections.length) {
+      return (
+        '<div class="portal-outer">' +
+        '<div class="portal-header">' +
+        '<div>' +
+        '<div class="portal-title">PORTAL PREVIEW</div>' +
+        '<div class="portal-subtitle">左のテキストエリアに構造を入力して「ポータルを生成」を押してください。</div>' +
+        '</div>' +
+        '<div class="portal-pill">まだセクションがありません</div>' +
+        '</div>' +
+        '</div>'
+      );
+    }
+
+    let body = '<div class="portal-outer">';
+    body += '<div class="portal-header">' +
+            '<div>' +
+            '<div class="portal-title">WORKS PORTAL</div>' +
+            '<div class="portal-subtitle">同一フォルダ内の HTML 作品へのナビゲーションページ</div>' +
+            '</div>' +
+            '<div class="portal-pill">' + sections.length + ' セクション</div>' +
+            '</div>';
+
+    sections.forEach(sec => {
+      body += '<section class="portal-section">';
+      const count = sec.items.length;
+      body += '<h2>' + escapeHtml(sec.title);
+      if (count > 0) {
+        body += '<span>' + count + ' ページ</span>';
+      }
+      body += '</h2>';
+
+      if (count > 0) {
+        body += '<ul class="portal-list">';
+        sec.items.forEach(item => {
+          const fileName = item + '.html'; // 同フォルダ想定
+          const href = encodeURI(fileName);
+          body += '<li><a href="' + href + '">' + escapeHtml(item) + '</a></li>';
+        });
+        body += '</ul>';
+      }
+      body += '</section>';
+    });
+
+    body += '</div>';
+    return body;
+  }
+
+  function generatePortal() {
+    const text = structureInput.value || '';
+    const sections = parseStructure(text);
+    const portalBody = buildPortalBody(sections);
+
+    portalPreview.innerHTML = portalBody;
+
+    const fullHtml =
+`<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>作品ポータル</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: radial-gradient(circle at top, #111827 0, #020617 55%, #020617 100%);
+    color: #e5e7eb;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 32px 16px;
+  }
+  .portal-outer {
+    max-width: 720px;
+    width: 100%;
+    padding: 16px 18px 18px;
+    border-radius: 20px;
+    border: 1px solid rgba(55,65,81,0.9);
+    background:
+      radial-gradient(circle at top left, rgba(56,189,248,0.18), transparent 60%),
+      radial-gradient(circle at bottom right, rgba(99,102,241,0.22), transparent 60%),
+      linear-gradient(135deg, #020617, #020617);
+    box-shadow: 0 18px 40px rgba(15,23,42,0.9);
+  }
+  .portal-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .portal-title {
+    font-size: 20px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .portal-subtitle {
+    font-size: 12px;
+    color: #9ca3af;
+  }
+  .portal-pill {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: rgba(15,23,42,0.9);
+    color: #e5e7eb;
+  }
+  .portal-section {
+    margin-top: 12px;
+    padding: 9px 10px;
+    border-radius: 14px;
+    background: rgba(15,23,42,0.96);
+    border: 1px solid rgba(55,65,81,0.9);
+  }
+  .portal-section h2 {
+    margin: 0 0 6px;
+    font-size: 16px;
+  }
+  .portal-section h2 span {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(15,23,42,0.9);
+    border: 1px solid rgba(148,163,184,0.65);
+    font-size: 11px;
+    color: #9ca3af;
+    margin-left: 6px;
+  }
+  .portal-list {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    list-style: none;
+  }
+  .portal-list li {
+    position: relative;
+    padding-left: 12px;
+    margin: 2px 0;
+    font-size: 14px;
+  }
+  .portal-list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: #06b6d4;
+    font-size: 17px;
+  }
+  .portal-list a {
+    color: #a5b4fc;
+    text-decoration: none;
+    border-radius: 999px;
+    padding: 3px 8px;
+    margin-left: -4px;
+    transition: background 0.15s, transform 0.05s;
+    background: rgba(15,23,42,0.9);
+    border: 1px solid transparent;
+  }
+  .portal-list a:hover {
+    background: rgba(56,189,248,0.14);
+    border-color: rgba(56,189,248,0.7);
+  }
+  .portal-list a:active {
+    transform: translateY(1px);
+  }
+</style>
+</head>
+<body>
+${portalBody}
+</body>
+</html>`;
+
+    outputHtml.value = fullHtml;
+
+    // 生成後に保存
+    saveState();
+  }
+
+  function setupEvents() {
+    structureInput.addEventListener('input', () => {
+      setSaveStatus('⏳ 保存待ち…', false);
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveState, 400);
+    });
+
+    document.getElementById('generateBtn').addEventListener('click', () => {
+      generatePortal();
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      if (structureInput.value.trim() &&
+          !confirm('入力内容をすべて消去します。よろしいですか？')) {
+        return;
+      }
+      structureInput.value = '';
+      outputHtml.value = '';
+      portalPreview.innerHTML = '';
+      saveState();
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const text = outputHtml.value;
+      if (!text.trim()) {
+        copyStatus.textContent = 'まだ HTML が生成されていません。まず「ポータルを生成」を押してください。';
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        copyStatus.textContent = '✅ コードをクリップボードにコピーしました。テキストエディタに貼り付けて保存してください。';
+      } catch (e) {
+        copyStatus.textContent = '⚠ コピーに失敗しました。手動で選択してコピーしてください。';
+      }
+    });
+
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  const text = outputHtml.value;
+  if (!text.trim()) {
+    downloadStatus.textContent = 'まだ HTML が生成されていません。まず「ポータルを生成」を押してください。';
+    return;
+  }
+  try {
+    const blob = new Blob([text], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'portal.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    downloadStatus.textContent = '✅ portal.html をダウンロードしました。';
+  } catch (e) {
+    console.error(e);
+    downloadStatus.textContent = '⚠ ダウンロードに失敗しました。ブラウザの制限が原因の可能性があります。';
+  }
+});
+  }
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    try {
+      await openDatabase();
+      loadState();
+      setSaveStatus('⛁ 保存済み', false);
+    } catch (e) {
+      setSaveStatus('⚠ 保存機能が無効です（IndexedDB エラー）', false);
+    }
+    setupEvents();
+  });
+</script>
+</body>
+</html>
