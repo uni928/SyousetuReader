@@ -511,7 +511,7 @@ let slashIndex = 0;
   
 
 for(let i = slashIndex + 1; i < lines.length; i++) {
-  if((lines[i].startsWith("「") || lines[i].startsWith("　") || lines[i].startsWith("『")) && lines[i].trim() != "") {
+  if((lines[i].startsWith("【") || lines[i].startsWith("「") || lines[i].startsWith("　") || lines[i].startsWith("『")) && lines[i].trim() != "") {
     slashIndex = i - 2;
     while(lines[slashIndex + 1].trim() == "")
       slashIndex -= 1;
@@ -1543,6 +1543,7 @@ renderAll();
 </script>
 </body>
 </html>
+
 
 
 
